@@ -167,7 +167,12 @@ def excel_creator(name_list, date_list): #FALTA AGREGAR LAS HORAS REGULARES Y OV
         for j in range(len(date_list)):
             #Para este caso se tiene que editar pensando en que las celdas tienen valores dados otras tablas según la plantilla que se usa generalmente, es decir,
             #los valores de la casilla Total Regular Hours - Daily debe variar si hay overtime en alguna de las casillas
-            sheet[str(chr(66+j))+str(len(name_list)+3+i)] = "=SUM("+str(chr(66+j))+'3:'+str(chr(66+j))+str(len(name_list)+2)+')'
+            if i==0:
+                sheet[str(chr(66+j))+str(len(name_list)+3+i)] = "=SUM("+str(chr(66+j))+'3:'+str(chr(66+j))+str(len(name_list)+2)+')'
+            elif i==1:
+                sheet[str(chr(66+j))+str(len(name_list)+3+i)] = f"={get_excel_column_name(21+espacio_pagos+j)}{len(name_list)+3}"
+            elif i==2:
+                sheet[str(chr(66+j))+str(len(name_list)+3+i)] = f"={get_excel_column_name(29+espacio_pagos+j)}{len(name_list)+3}"
     
     #Formato y código de las horas semanales            
     cell_text_week = ['TOTAL HOURS - WEEKLY', 'TOTAL REGULAR HOURS - WEEKLY', 'TOTAL OVERTIME HOURS - WEEKLY']
