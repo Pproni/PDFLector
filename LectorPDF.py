@@ -121,7 +121,20 @@ def daylist_generator(initial_date, final_date):
 
     return day_list
 
-def excel_creator(name_list, date_list):
+def excel_creator(name_list, date_list): #FALTA AGREGAR LAS HORAS REGULARES Y OVERTIME DE LA PRIMERA TABLA, POR DÍA.
+    
+    def get_excel_column_name(column_number):
+        """
+        Convierte el número de columna al estilo de nombre de columna de excel.
+        Ej: 1->A, 2->B, 26->Z, 27->AA, etc.
+        """
+        result = ""
+        while column_number > 0:
+            remainder = (column_number - 1) % 26
+            result = chr(65 + remainder) + result
+            column_number = (column_number - 1) // 26
+        return str(result)
+    
     # Crear un libro de trabajo
     workbook = Workbook()
 
@@ -135,9 +148,13 @@ def excel_creator(name_list, date_list):
     #sheet['B1'] = 'End day of week: '+ str(date_list[-1])
     
     #Agregar nombres
-    sheet['A2'] = 'Names'
+    espacio_pagos = 1
+    
+    sheet['A2'] = 'NAMES'
+    sheet[get_excel_column_name(36 + espacio_pagos) + '2'] = 'NAMES'
     for i in range(len(name_list)):
         sheet['A'+str(i+3)] = name_list[i]
+        sheet[get_excel_column_name(36 + espacio_pagos) + str(i+3)] = name_list[i]
     
     #Agregar los días de trabajo
     for i in range(len(date_list)):
@@ -176,7 +193,49 @@ def excel_creator(name_list, date_list):
                 sheet.cell(row=fila, column=columna, value='-')
             else:
                 pass
+            
+    #Tablas extra
+    ##Total Hours table
+    ###Nombres de las tablas
+    sheet[str(chr(77+espacio_pagos))+'1'] = 'TOTAL HOURS (ACCUMULATED)'
+    sheet[get_excel_column_name(21+espacio_pagos)+'1'] = 'REGULAR HOURS'
+    sheet[get_excel_column_name(29+espacio_pagos)+'1'] = 'OVERTIME HOURS (PER DAY)'
     
+    ###Agregar los días de trabajo y horas totales acumuladas
+    for i in range(len(date_list)):
+        sheet[str(chr(77+i+espacio_pagos))+'2'] = date_list[i]
+        for j in range(len(name_list)):
+            if i==0:
+                sheet[str(chr(77+i+espacio_pagos))+str(j+3)] = f"=B{j + 3}"
+            else:
+                previous_cell = str(chr(77+i+espacio_pagos-1))+str(j+3)
+                general_table_cell = str(chr(66+i))+str(j+3)
+                sheet[str(chr(77+i+espacio_pagos))+str(j+3)] = f"={general_table_cell}+{previous_cell}"
+    
+    ##Regular Hours
+    ###Agregar los días de trabajo y horas totales acumuladas
+    for i in range(len(date_list)):
+        sheet[get_excel_column_name(21 + i + espacio_pagos) + '2'] = date_list[i]
+        for j in range(len(name_list)):
+            if i == 0:
+                sheet[get_excel_column_name(21 + i + espacio_pagos) + str(j + 3)] = f"=N{j + 3}"
+            else:
+                sheet[get_excel_column_name(21 + i + espacio_pagos) + str(j + 3)] = f"=IF({get_excel_column_name(13 + espacio_pagos + i)}{j+3}<=0, 0, IF({get_excel_column_name(13 + espacio_pagos + i)}{j+3}<=40,{get_excel_column_name(13 + espacio_pagos + i)}{j+3}-{get_excel_column_name(13 + espacio_pagos + i - 1)}{j+3},IF({get_excel_column_name(13 + espacio_pagos + i)}{j+3}-{get_excel_column_name(13 + espacio_pagos + i-1)}{j+3}<=0, 0, ABS({get_excel_column_name(13 + espacio_pagos + i)}{j+3}-{get_excel_column_name(13 + espacio_pagos + i-1)}{j+3}-{get_excel_column_name(29 + espacio_pagos + i)}{j+3}))))"
+
+    ##Overtime Hours
+    for i in range(len(date_list)):
+        sheet[get_excel_column_name(29 + i + espacio_pagos) + '2'] = date_list[i]
+        for j in range(len(name_list)):
+            if i == 0:
+                sheet[get_excel_column_name(29 + i + espacio_pagos) + str(j + 3)] = "=0"
+            else:
+                sheet[get_excel_column_name(29 + i + espacio_pagos) + str(j + 3)] =f"=IF({get_excel_column_name(13 + espacio_pagos + i)}{j+3}<=0, 0, IF({get_excel_column_name(13 + espacio_pagos + i)}{j+3}<=40,0, IF({get_excel_column_name(13 + espacio_pagos + i)}{j+3}-{get_excel_column_name(13 + espacio_pagos + i-1)}{j+3}<=0,0,IF({get_excel_column_name(13 + espacio_pagos + i)}{j+3}>40, {get_excel_column_name(13 + espacio_pagos + i)}{j+3}-40-SUM({get_excel_column_name(29 + espacio_pagos)}{j+3}:{get_excel_column_name(29 + espacio_pagos + i - 1)}{j+3}),0))))"
+    
+    for i in range(len(date_list)):
+        sheet[chr(77+i+espacio_pagos)+str(len(name_list)+3)] = f"=SUM({chr(77+i+espacio_pagos)}3:{chr(77+i+espacio_pagos)}{len(name_list)+2})"
+        sheet[get_excel_column_name(21 + i + espacio_pagos) + str(len(name_list) + 3)] = f"=SUM({get_excel_column_name(21 + i + espacio_pagos)}3:{get_excel_column_name(21 + i + espacio_pagos)}{len(name_list) + 2})"
+        sheet[get_excel_column_name(29 + i + espacio_pagos) + str(len(name_list) + 3)] = f"=SUM({get_excel_column_name(29 + i + espacio_pagos)}3:{get_excel_column_name(29 + i + espacio_pagos)}{len(name_list) + 2})"
+       
     # Guardar el libro de trabajo en un archivo
     workbook.save('test_savedata.xlsx')
     workbook.close()
@@ -228,10 +287,15 @@ def new_sheets(name_list, job_name, job_ID, date_list, job_day, job_names, hours
     cell_text_perday = ['TOTAL HOURS DAY - DAILY', 'TOTAL REGULAR HOURS - DAILY', 'TOTAL OVERTIME HOURS - DAILY']
     for i in range(len(cell_text_perday)):
         new_sheet['A'+str(len(name_list)+3+i)] = cell_text_perday[i]
+        #Para este caso se tiene que editar pensando en que las celdas tienen valores dados otras tablas según la plantilla que se usa generalmente, es decir,
+        #los valores de la casilla Total Regular Hours - Daily debe variar si hay overtime en alguna de las casillas
         for j in range(len(date_list)):
-            #Para este caso se tiene que editar pensando en que las celdas tienen valores dados otras tablas según la plantilla que se usa generalmente, es decir,
-            #los valores de la casilla Total Regular Hours - Daily debe variar si hay overtime en alguna de las casillas
-            new_sheet[str(chr(66+j))+str(len(name_list)+3+i)] = "=SUM("+str(chr(66+j))+'3:'+str(chr(66+j))+str(len(name_list)+2)+')'
+            if i==0:
+                new_sheet[str(chr(66+j))+str(len(name_list)+3+i)] = "=SUM("+str(chr(66+j))+'3:'+str(chr(66+j))+str(len(name_list)+2)+')'
+            elif i==1:
+                new_sheet[str(chr(66+j))+str(len(name_list)+3+i)] = "="+str(chr(66+j))+str(len(name_list)+3)+"-"+str(chr(66+j))+str(len(name_list)+5)
+            elif i==2:
+                new_sheet[str(chr(66+j))+str(len(name_list)+3+i)] = "=0"
     
     #Formato y código de las horas semanales            
     cell_text_week = ['TOTAL HOURS - WEEKLY', 'TOTAL REGULAR HOURS - WEEKLY', 'TOTAL OVERTIME HOURS - WEEKLY']
