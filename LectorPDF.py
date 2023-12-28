@@ -143,6 +143,20 @@ def excel_creator(name_list, date_list):
     for i in range(len(date_list)):
         sheet[str(chr(66+i))+'2'] = date_list[i]
         
+    #Agregar celdas con horas diarias
+    cell_text_perday = ['TOTAL HOURS DAY - DAILY', 'TOTAL REGULAR HOURS - DAILY', 'TOTAL OVERTIME HOURS - DAILY']
+    for i in range(len(cell_text_perday)):
+        sheet['A'+str(len(name_list)+3+i)] = cell_text_perday[i]
+        for j in range(len(date_list)):
+            sheet[str(chr(66+j))+str(len(name_list)+3+i)] = "=SUM("+str(chr(66+j))+'3:'+str(chr(66+j))+str(len(name_list)+2)+')'
+            
+    cell_text_week = ['TOTAL HOURS - WEEKLY', 'TOTAL REGULAR HOURS - WEEKLY', 'TOTAL OVERTIME HOURS - WEEKLY']
+    for i in range(len(cell_text_week)):
+        sheet[str(chr(66+len(date_list)+i))+'2'] = cell_text_week[i]
+        for j in range(len(name_list)):
+            sheet[str(chr(66+len(date_list)+i))+str(3+j)] = "=SUM("+str(chr(66))+str(3+j)+':'+str(chr(66+len(date_list)-1))+str(3+j)+')'
+    
+    
     # Guardar el libro de trabajo en un archivo
     workbook.save('test_savedata.xlsx')
     workbook.close()
@@ -170,12 +184,14 @@ def new_sheets(name_list, job_name, job_ID, date_list, job_day, job_names, hours
     job_day = datetime.strptime(job_day, "%m/%d/%y")
     job_day = (str(job_day.strftime('%A'))+" "+ str(job_day.day))
     
-    #EL ERROR ESTÁ ACÁ, HAY ALGO RARO CON EL CONDICIONAL, ALGUNO NO SE ESTÁ CUMPLIENDO
     for i in job_names:
         if i in name_list and job_day in date_list:
             row = name_list.index(str(i))
             column = date_list.index(str(job_day))
-            new_sheet[str(chr(66+int(column)))+str(int(row)+3)] = float("{:.2f}".format(hours[job_names.index(str(i))]))
+            if new_sheet[str(chr(66+int(column)))+str(int(row)+3)].value == None:
+                new_sheet[str(chr(66+int(column)))+str(int(row)+3)] = '='+str("{:.2f}".format(hours[job_names.index(str(i))]))
+            else:
+                new_sheet[str(chr(66+int(column)))+str(int(row)+3)] += '+'+str("{:.2f}".format(hours[job_names.index(str(i))]))
         else:
             print('No coincide la fecha:', job_day, ', en el trabajo: ', job_name)
             pass
