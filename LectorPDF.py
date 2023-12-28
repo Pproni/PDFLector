@@ -131,8 +131,8 @@ def excel_creator(name_list, date_list):
     sheet.title = 'General'
     
     #Agregar las fechas de inicio y final
-    sheet['A1'] = 'Start day of week: '+ str(date_list[0])
-    sheet['B1'] = 'End day of week: '+ str(date_list[-1])
+    sheet['A1'] = 'Start day of week: '+ str(date_list[0])+"\n"+' End day of week: '+ str(date_list[-1])
+    #sheet['B1'] = 'End day of week: '+ str(date_list[-1])
     
     #Agregar nombres
     sheet['A2'] = 'Names'
@@ -148,14 +148,34 @@ def excel_creator(name_list, date_list):
     for i in range(len(cell_text_perday)):
         sheet['A'+str(len(name_list)+3+i)] = cell_text_perday[i]
         for j in range(len(date_list)):
+            #Para este caso se tiene que editar pensando en que las celdas tienen valores dados otras tablas según la plantilla que se usa generalmente, es decir,
+            #los valores de la casilla Total Regular Hours - Daily debe variar si hay overtime en alguna de las casillas
             sheet[str(chr(66+j))+str(len(name_list)+3+i)] = "=SUM("+str(chr(66+j))+'3:'+str(chr(66+j))+str(len(name_list)+2)+')'
-            
+    
+    #Formato y código de las horas semanales            
     cell_text_week = ['TOTAL HOURS - WEEKLY', 'TOTAL REGULAR HOURS - WEEKLY', 'TOTAL OVERTIME HOURS - WEEKLY']
     for i in range(len(cell_text_week)):
         sheet[str(chr(66+len(date_list)+i))+'2'] = cell_text_week[i]
         for j in range(len(name_list)):
-            sheet[str(chr(66+len(date_list)+i))+str(3+j)] = "=SUM("+str(chr(66))+str(3+j)+':'+str(chr(66+len(date_list)-1))+str(3+j)+')'
+            if i==0:
+                sheet[str(chr(66+len(date_list)+i))+str(3+j)] = "=SUM("+str(chr(66))+str(3+j)+':'+str(chr(66+len(date_list)-1))+str(3+j)+')'
+            elif i==1:
+                sheet[str(chr(66+len(date_list)+i))+str(3+j)] = "=IF(I"+str(3+j)+'<=40,I'+str(3+j)+',40)'
+            elif i==2:
+                sheet[str(chr(66+len(date_list)+i))+str(3+j)] = "=I"+str(3+j)+"-J"+str(3+j)
     
+    #Realiza la suma de cada una de las columnas
+    sheet['I13'] = '=SUM(I3:I'+str(len(name_list)+2)+')'
+    sheet['J14'] = '=SUM(J3:J'+str(len(name_list)+2)+')'
+    sheet['K15'] = '=SUM(K3:K'+str(len(name_list)+2)+')'
+    
+    #Llena las celdas vacías
+    for fila in range(int(len(name_list)+3),int(len(name_list)+6)):
+        for columna in range(9,12):
+            if sheet.cell(row=fila, column=columna).value == None:
+                sheet.cell(row=fila, column=columna, value='-')
+            else:
+                pass
     
     # Guardar el libro de trabajo en un archivo
     workbook.save('test_savedata.xlsx')
@@ -195,6 +215,48 @@ def new_sheets(name_list, job_name, job_ID, date_list, job_day, job_names, hours
         else:
             print('No coincide la fecha:', job_day, ', en el trabajo: ', job_name)
             pass
+    
+    #Llenar espacios en blanco de las horas con ceros
+    for fila in range(3, int(len(name_list)+3)):
+        for columna in range(2,9):
+            if new_sheet.cell(row=fila, column=columna).value == None:
+                new_sheet.cell(row=fila, column=columna, value='=0')
+            else:
+                pass
+    
+    #Agregar celdas con horas diarias
+    cell_text_perday = ['TOTAL HOURS DAY - DAILY', 'TOTAL REGULAR HOURS - DAILY', 'TOTAL OVERTIME HOURS - DAILY']
+    for i in range(len(cell_text_perday)):
+        new_sheet['A'+str(len(name_list)+3+i)] = cell_text_perday[i]
+        for j in range(len(date_list)):
+            #Para este caso se tiene que editar pensando en que las celdas tienen valores dados otras tablas según la plantilla que se usa generalmente, es decir,
+            #los valores de la casilla Total Regular Hours - Daily debe variar si hay overtime en alguna de las casillas
+            new_sheet[str(chr(66+j))+str(len(name_list)+3+i)] = "=SUM("+str(chr(66+j))+'3:'+str(chr(66+j))+str(len(name_list)+2)+')'
+    
+    #Formato y código de las horas semanales            
+    cell_text_week = ['TOTAL HOURS - WEEKLY', 'TOTAL REGULAR HOURS - WEEKLY', 'TOTAL OVERTIME HOURS - WEEKLY']
+    for i in range(len(cell_text_week)):
+        new_sheet[str(chr(66+len(date_list)+i))+'2'] = cell_text_week[i]
+        for j in range(len(name_list)):
+            if i==0:
+                new_sheet[str(chr(66+len(date_list)+i))+str(3+j)] = "=SUM("+str(chr(66))+str(3+j)+':'+str(chr(66+len(date_list)-1))+str(3+j)+')'
+            elif i==1:
+                new_sheet[str(chr(66+len(date_list)+i))+str(3+j)] = "=I"+str(3+j)+"-K"+str(3+j)
+            elif i==2:
+                new_sheet[str(chr(66+len(date_list)+i))+str(3+j)] = "=0"
+    
+    #Realiza la suma de cada una de las columnas
+    new_sheet['I13'] = '=SUM(I3:I'+str(len(name_list)+2)+')'
+    new_sheet['J14'] = '=SUM(J3:J'+str(len(name_list)+2)+')'
+    new_sheet['K15'] = '=SUM(K3:K'+str(len(name_list)+2)+')'
+    
+    #Llena las celdas vacías
+    for fila in range(int(len(name_list)+3),int(len(name_list)+6)):
+        for columna in range(9,12):
+            if new_sheet.cell(row=fila, column=columna).value == None:
+                new_sheet.cell(row=fila, column=columna, value='-')
+            else:
+                pass
     
     workbook.save('test_savedata.xlsx')
     workbook.close()
