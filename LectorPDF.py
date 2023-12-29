@@ -8,6 +8,7 @@ import re
 import os
 import numpy as np
 from datetime import datetime, timedelta
+import time
 
 def folder_creator(folder_directory,folder_name):
     path = os.path.join(folder_directory, folder_name)
@@ -336,6 +337,10 @@ def excel_creator(name_list, date_list, start_day, end_day):
                 sheet.cell(row=r, column=c).border = thin_border
             else:
                 pass
+    for c in range(2,37):
+        for r in range(3,len(name_list)+6):
+            sheet.cell(row=r, column=c).number_format = '0.00'
+            
     sheet.cell(row=1, column=2).font = Font(name='Arial', size=24, bold=True, color='FFFFFF')
     # Guardar el libro de trabajo en un archivo
     workbook.save('test_savedata.xlsx')
@@ -388,7 +393,7 @@ def new_sheets(name_list, job_name, job_ID, date_list, job_day, job_names, hours
             if new_sheet[str(chr(66+int(column)))+str(int(row)+3)].value == None:
                 new_sheet[str(chr(66+int(column)))+str(int(row)+3)] = '='+str("{:.2f}".format(hours[job_names.index(str(i))]))
             else:
-                new_sheet[str(chr(66+int(column)))+str(int(row)+3)] += '+'+str("{:.2f}".format(hours[job_names.index(str(i))]))
+                new_sheet[str(chr(66+int(column)))+str(int(row)+3)] = new_sheet[str(chr(66+int(column)))+str(int(row)+3)].value +'+'+str("{:.2f}".format(hours[job_names.index(str(i))]))
         else:
             print('No coincide la fecha:', job_day, ', en el trabajo: ', job_name)
             pass
@@ -481,6 +486,9 @@ def new_sheets(name_list, job_name, job_ID, date_list, job_day, job_names, hours
                 new_sheet.cell(row=r, column=c).border = thin_border
             else:
                 pass
+    for c in range(2,12):
+        for r in range(3,len(name_list)+6):
+            new_sheet.cell(row=r, column=c).number_format = '0.00'
     new_sheet.cell(row=1, column=2).font = Font(name='Arial', size=24, bold=True, color='FFFFFF')
     workbook.save('test_savedata.xlsx')
     workbook.close()
@@ -510,11 +518,17 @@ def general_hours(name_list, date_list):
     workbook.close()
     
 if __name__ == "__main__":
+    crono_start = time.time()
     #Crea o verifica que las carpetas donde se almacenarán los archivos estén creadas
     folders = ['PDFs', 'SVGs', 'data','Excel']
     for i in folders:
         folder_creator(str(os.getcwd()),i)
     files, files_names = check_pdfs(os.path.join(str(os.getcwd()),'PDFs'))
+    
+    #for i in range(len(files)):
+    #    pdf2svg(files[i],files_names[i])
+    #for i in range(len(files)):
+    #    pdf2excel(files[i],files_names[i])
     
     #Introducción de los días inicial y final de la semana de trabajo
     start_day = input('Fecha de inicio (year-month-day): ')
@@ -548,8 +562,5 @@ if __name__ == "__main__":
     #Texto comprobante
     print('우유')
     
-    #for i in range(len(files)):
-    #    pdf2svg(files[i],files_names[i])
-    #for i in range(len(files)):
-    #    pdf2excel(files[i],files_names[i])
-    
+    crono_stop = time.time()
+    print(f"{crono_stop-crono_start} - [s]")
