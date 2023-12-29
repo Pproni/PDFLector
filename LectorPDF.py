@@ -3,6 +3,7 @@ from spire.pdf import *
 import pdfplumber
 import pandas as pd
 from openpyxl import load_workbook, Workbook
+from openpyxl.styles import PatternFill, Border, Side, Alignment, Font
 import re
 import os
 import numpy as np
@@ -121,7 +122,7 @@ def daylist_generator(initial_date, final_date):
 
     return day_list
 
-def excel_creator(name_list, date_list): #FALTA AGREGAR LAS HORAS REGULARES Y OVERTIME DE LA PRIMERA TABLA, POR DÍA.
+def excel_creator(name_list, date_list, start_day, end_day):
     
     def get_excel_column_name(column_number):
         """
@@ -135,6 +136,15 @@ def excel_creator(name_list, date_list): #FALTA AGREGAR LAS HORAS REGULARES Y OV
             column_number = (column_number - 1) // 26
         return str(result)
     
+    thin_border = Border(left=Side(style='thin'), 
+                     right=Side(style='thin'), 
+                     top=Side(style='thin'), 
+                     bottom=Side(style='thin'))
+    
+    #Estilo de celdas
+    Titulos_fechas_style = PatternFill(fill_type="solid", fgColor="ffd966")
+    Nombres_style = PatternFill(fill_type="solid", fgColor="b7b7b7")
+    
     # Crear un libro de trabajo
     workbook = Workbook()
 
@@ -143,30 +153,62 @@ def excel_creator(name_list, date_list): #FALTA AGREGAR LAS HORAS REGULARES Y OV
     sheet = workbook['Sheet']
     sheet.title = 'General'
     
-    #Agregar las fechas de inicio y final
-    sheet['A1'] = 'Start day of week: '+ str(date_list[0])+"\n"+' End day of week: '+ str(date_list[-1])
-    #sheet['B1'] = 'End day of week: '+ str(date_list[-1])
+    #Función para obtener el título con los números cardinales
+    def get_ordinal_suffix(day):
+        if 10 <= day % 100 <= 20:
+            suffix = 'th'
+        else:
+            suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
+        return suffix
+    
+    start_date = start_day
+    end_date = end_day
+
+    formatted_start = f"{start_date.day}{get_ordinal_suffix(start_date.day)} {start_date.strftime('%b')}"
+    formatted_end = f"{end_date.day}{get_ordinal_suffix(end_date.day)} {end_date.strftime('%b')}"
+    
+    #Colorear
+    sheet['A1'].fill = PatternFill(fill_type="solid", fgColor="666666")
+    sheet['L1'].fill = PatternFill(fill_type="solid", fgColor="666666")
+    
+    #Combinar celdas
+    sheet['B1'] = f'{formatted_start} to {formatted_end} - Chicago'
+    sheet['B1'].fill = PatternFill(fill_type="solid", fgColor="666666")
+    sheet.merge_cells(start_row=1, start_column=2, end_row=1, end_column=11)
+    sheet['N1'].fill = Titulos_fechas_style
+    sheet.merge_cells(start_row=1, start_column=14, end_row=1, end_column=20)
+    sheet['V1'].fill = Titulos_fechas_style
+    sheet.merge_cells(start_row=1, start_column=22, end_row=1, end_column=28)
+    sheet['AD1'].fill = Titulos_fechas_style
+    sheet.merge_cells(start_row=1, start_column=30, end_row=1, end_column=36)
     
     #Agregar nombres
     espacio_pagos = 1
     
     sheet['A2'] = 'NAMES'
+    sheet['A2'].fill = Titulos_fechas_style
     sheet[get_excel_column_name(36 + espacio_pagos) + '2'] = 'NAMES'
+    sheet[get_excel_column_name(36 + espacio_pagos) + '2'].fill = Titulos_fechas_style
     for i in range(len(name_list)):
         sheet['A'+str(i+3)] = name_list[i]
+        sheet['A'+str(i+3)].fill = Nombres_style
         sheet[get_excel_column_name(36 + espacio_pagos) + str(i+3)] = name_list[i]
+        sheet[get_excel_column_name(36 + espacio_pagos) + str(i+3)].fill = Nombres_style
     
     #Agregar los días de trabajo
     for i in range(len(date_list)):
         sheet[str(chr(66+i))+'2'] = date_list[i]
+        sheet[str(chr(66+i))+'2'].fill = Titulos_fechas_style
         
     #Agregar celdas con horas diarias
     cell_text_perday = ['TOTAL HOURS DAY - DAILY', 'TOTAL REGULAR HOURS - DAILY', 'TOTAL OVERTIME HOURS - DAILY']
+    titulos_totales_style = ['b6d7a8','f9cb9c','a4c2f4','ea9999']
+
     for i in range(len(cell_text_perday)):
         sheet['A'+str(len(name_list)+3+i)] = cell_text_perday[i]
+        sheet['A'+str(len(name_list)+3+i)].fill = PatternFill(fill_type="solid", fgColor=titulos_totales_style[i])
         for j in range(len(date_list)):
-            #Para este caso se tiene que editar pensando en que las celdas tienen valores dados otras tablas según la plantilla que se usa generalmente, es decir,
-            #los valores de la casilla Total Regular Hours - Daily debe variar si hay overtime en alguna de las casillas
+            sheet[str(chr(66+j))+str(len(name_list)+3+i)].fill = PatternFill(fill_type="solid", fgColor=titulos_totales_style[i])
             if i==0:
                 sheet[str(chr(66+j))+str(len(name_list)+3+i)] = "=SUM("+str(chr(66+j))+'3:'+str(chr(66+j))+str(len(name_list)+2)+')'
             elif i==1:
@@ -175,41 +217,60 @@ def excel_creator(name_list, date_list): #FALTA AGREGAR LAS HORAS REGULARES Y OV
                 sheet[str(chr(66+j))+str(len(name_list)+3+i)] = f"={get_excel_column_name(29+espacio_pagos+j)}{len(name_list)+3}"
     
     #Formato y código de las horas semanales            
-    cell_text_week = ['TOTAL HOURS - WEEKLY', 'TOTAL REGULAR HOURS - WEEKLY', 'TOTAL OVERTIME HOURS - WEEKLY']
+    cell_text_week = ['TOTAL HOURS - WEEKLY', 'TOTAL REGULAR HOURS - WEEKLY', 'TOTAL OVERTIME HOURS - WEEKLY','PAGOS']
     for i in range(len(cell_text_week)):
         sheet[str(chr(66+len(date_list)+i))+'2'] = cell_text_week[i]
+        sheet[str(chr(66+len(date_list)+i))+'2'].fill = PatternFill(fill_type="solid", fgColor=titulos_totales_style[i])            
         for j in range(len(name_list)):
+            sheet[str(chr(66+len(date_list)+i))+str(3+j)].fill = PatternFill(fill_type="solid", fgColor=titulos_totales_style[i])
             if i==0:
                 sheet[str(chr(66+len(date_list)+i))+str(3+j)] = "=SUM("+str(chr(66))+str(3+j)+':'+str(chr(66+len(date_list)-1))+str(3+j)+')'
             elif i==1:
                 sheet[str(chr(66+len(date_list)+i))+str(3+j)] = "=IF(I"+str(3+j)+'<=40,I'+str(3+j)+',40)'
             elif i==2:
                 sheet[str(chr(66+len(date_list)+i))+str(3+j)] = "=I"+str(3+j)+"-J"+str(3+j)
+            elif i==3:
+                sheet[str(chr(66+len(date_list)+i))+str(3+j)] = f"=I{3+j}*15"
     
     #Realiza la suma de cada una de las columnas
-    sheet['I13'] = '=SUM(I3:I'+str(len(name_list)+2)+')'
-    sheet['J14'] = '=SUM(J3:J'+str(len(name_list)+2)+')'
-    sheet['K15'] = '=SUM(K3:K'+str(len(name_list)+2)+')'
+    sheet[f"I{len(name_list)+3}"] = '=SUM(I3:I'+str(len(name_list)+2)+')'
+    sheet[f"I{len(name_list)+3}"].fill = PatternFill(fill_type="solid", fgColor='93c47d')
+    sheet[f"J{len(name_list)+4}"] = '=SUM(J3:J'+str(len(name_list)+2)+')'
+    sheet[f"J{len(name_list)+4}"].fill = PatternFill(fill_type="solid", fgColor='f6b26b')
+    sheet[f"K{len(name_list)+5}"] = '=SUM(K3:K'+str(len(name_list)+2)+')'
+    sheet[f"K{len(name_list)+5}"].fill = PatternFill(fill_type="solid", fgColor='6d9eeb')
+    for i in range(3,6):
+        sheet[f"L{len(name_list)+i}"] = f"={get_excel_column_name(i+6)}{len(name_list)+i}*15"
+        sheet[f"L{len(name_list)+i}"].fill = PatternFill(fill_type="solid", fgColor=titulos_totales_style[3])
     
     #Llena las celdas vacías
-    for fila in range(int(len(name_list)+3),int(len(name_list)+6)):
-        for columna in range(9,12):
+    for columna in range(9,12):
+        for fila in range(int(len(name_list)+3),int(len(name_list)+6)):                
             if sheet.cell(row=fila, column=columna).value == None:
                 sheet.cell(row=fila, column=columna, value='-')
+                if columna == 9:
+                    sheet.cell(row=fila, column=columna).fill = PatternFill(fill_type="solid", fgColor=titulos_totales_style[fila-len(name_list)-3])
+                elif columna == 10:
+                    sheet.cell(row=(len(name_list)+3), column=columna).fill = PatternFill(fill_type="solid", fgColor=titulos_totales_style[1])
+                    sheet.cell(row=int(len(name_list)+5), column=columna).fill = PatternFill(fill_type="solid", fgColor=titulos_totales_style[2])
+                elif columna == 11:
+                    sheet.cell(row=fila, column=columna).fill = PatternFill(fill_type="solid", fgColor=titulos_totales_style[2])
             else:
                 pass
             
     #Tablas extra
-    ##Total Hours table
+    ##Total Hours table 
     ###Nombres de las tablas
     sheet[str(chr(77+espacio_pagos))+'1'] = 'TOTAL HOURS (ACCUMULATED)'
     sheet[get_excel_column_name(21+espacio_pagos)+'1'] = 'REGULAR HOURS'
     sheet[get_excel_column_name(29+espacio_pagos)+'1'] = 'OVERTIME HOURS (PER DAY)'
     
-    ###Agregar los días de trabajo y horas totales acumuladas
+    ###Total hours (Accumulated)
     for i in range(len(date_list)):
         sheet[str(chr(77+i+espacio_pagos))+'2'] = date_list[i]
+        sheet[str(chr(77+i+espacio_pagos))+'2'].fill = Titulos_fechas_style
         for j in range(len(name_list)):
+            sheet[str(chr(77+i+espacio_pagos))+str(j+3)].fill = PatternFill(fill_type="solid", fgColor=titulos_totales_style[0])
             if i==0:
                 sheet[str(chr(77+i+espacio_pagos))+str(j+3)] = f"=B{j + 3}"
             else:
@@ -218,10 +279,11 @@ def excel_creator(name_list, date_list): #FALTA AGREGAR LAS HORAS REGULARES Y OV
                 sheet[str(chr(77+i+espacio_pagos))+str(j+3)] = f"={general_table_cell}+{previous_cell}"
     
     ##Regular Hours
-    ###Agregar los días de trabajo y horas totales acumuladas
     for i in range(len(date_list)):
         sheet[get_excel_column_name(21 + i + espacio_pagos) + '2'] = date_list[i]
+        sheet[get_excel_column_name(21 + i + espacio_pagos) + '2'].fill = Titulos_fechas_style
         for j in range(len(name_list)):
+            sheet[get_excel_column_name(21 + i + espacio_pagos) + str(j + 3)].fill = PatternFill(fill_type="solid", fgColor=titulos_totales_style[1])
             if i == 0:
                 sheet[get_excel_column_name(21 + i + espacio_pagos) + str(j + 3)] = f"=N{j + 3}"
             else:
@@ -230,7 +292,9 @@ def excel_creator(name_list, date_list): #FALTA AGREGAR LAS HORAS REGULARES Y OV
     ##Overtime Hours
     for i in range(len(date_list)):
         sheet[get_excel_column_name(29 + i + espacio_pagos) + '2'] = date_list[i]
+        sheet[get_excel_column_name(29 + i + espacio_pagos) + '2'].fill = Titulos_fechas_style
         for j in range(len(name_list)):
+            sheet[get_excel_column_name(29 + i + espacio_pagos) + str(j + 3)].fill = PatternFill(fill_type="solid", fgColor=titulos_totales_style[2])
             if i == 0:
                 sheet[get_excel_column_name(29 + i + espacio_pagos) + str(j + 3)] = "=0"
             else:
@@ -238,9 +302,41 @@ def excel_creator(name_list, date_list): #FALTA AGREGAR LAS HORAS REGULARES Y OV
     
     for i in range(len(date_list)):
         sheet[chr(77+i+espacio_pagos)+str(len(name_list)+3)] = f"=SUM({chr(77+i+espacio_pagos)}3:{chr(77+i+espacio_pagos)}{len(name_list)+2})"
+        sheet[chr(77+i+espacio_pagos)+str(len(name_list)+3)].fill = PatternFill(fill_type="solid", fgColor='93c47d')
         sheet[get_excel_column_name(21 + i + espacio_pagos) + str(len(name_list) + 3)] = f"=SUM({get_excel_column_name(21 + i + espacio_pagos)}3:{get_excel_column_name(21 + i + espacio_pagos)}{len(name_list) + 2})"
+        sheet[get_excel_column_name(21 + i + espacio_pagos) + str(len(name_list) + 3)].fill = PatternFill(fill_type="solid", fgColor='f6b26b')
         sheet[get_excel_column_name(29 + i + espacio_pagos) + str(len(name_list) + 3)] = f"=SUM({get_excel_column_name(29 + i + espacio_pagos)}3:{get_excel_column_name(29 + i + espacio_pagos)}{len(name_list) + 2})"
+        sheet[get_excel_column_name(29 + i + espacio_pagos) + str(len(name_list) + 3)].fill = PatternFill(fill_type="solid", fgColor='6d9eeb')
        
+    # Crear un estilo para centrar el contenido
+    centro_style = Alignment(horizontal="center", vertical="center",wrap_text=True)
+
+    tot_rows = sheet.max_row #get max row number
+    tot_cols = sheet.max_column #get max column number
+    
+    sheet.column_dimensions['A'].width = 23
+    sheet.column_dimensions[get_excel_column_name(37)].width = 23
+    sheet.row_dimensions[1].height = 56.25
+    sheet.row_dimensions[2].height = 56.25
+    
+    for i in range(len(name_list)):
+        sheet.row_dimensions[i+3].height = 15.75
+    
+    for i in range(len(name_list)+3,len(name_list)+6):
+        sheet.row_dimensions[i].height = 33
+    
+    for i in range(2,37):
+        sheet.column_dimensions[get_excel_column_name(i)].width = 11.86
+    
+    for c in range(1,tot_cols+1):
+        for r in range(1,tot_rows+1):
+            sheet.cell(row=r, column=c).alignment = centro_style
+            sheet.cell(row=r, column=c).font = Font(name='Arial', size=10)
+            if sheet.cell(row=r, column=c).value != None:
+                sheet.cell(row=r, column=c).border = thin_border
+            else:
+                pass
+    sheet.cell(row=1, column=2).font = Font(name='Arial', size=24, bold=True, color='FFFFFF')
     # Guardar el libro de trabajo en un archivo
     workbook.save('test_savedata.xlsx')
     workbook.close()
@@ -252,17 +348,34 @@ def new_sheets(name_list, job_name, job_ID, date_list, job_day, job_names, hours
     else:
         new_sheet = workbook[str(job_name)]
     
+    thin_border = Border(left=Side(style='thin'), 
+                     right=Side(style='thin'), 
+                     top=Side(style='thin'), 
+                     bottom=Side(style='thin'))
+    
+    #Estilo de celdas
+    Titulos_fechas_style = PatternFill(fill_type="solid", fgColor="ffd966")
+    Nombres_style = PatternFill(fill_type="solid", fgColor="b7b7b7")
+    
     #Casillas de información
-    new_sheet['A1'] = str(job_name) +'-'+str(job_ID)
+    new_sheet['B1'] = str(job_name) +'-'+str(job_ID)
+    new_sheet['B1'].fill = PatternFill(fill_type="solid", fgColor="666666")
+    new_sheet.merge_cells(start_row=1, start_column=2, end_row=1, end_column=11)
     new_sheet['A2'] = 'Names'
+    new_sheet['A2'].fill = Titulos_fechas_style
+    
+    #Colorear
+    new_sheet['A1'].fill = PatternFill(fill_type="solid", fgColor="666666")    
     
     #Agregar Nombres
     for i in range(len(name_list)):
         new_sheet['A'+str(i+3)] = name_list[i]
+        new_sheet['A'+str(i+3)].fill = Nombres_style
     
     #Agregar fechas
     for i in range(len(date_list)):
         new_sheet[str(chr(66+i))+'2'] = date_list[i]
+        new_sheet[str(chr(66+i))+'2'].fill = Titulos_fechas_style
         
     #Agregar horas
     job_day = datetime.strptime(job_day, "%m/%d/%y")
@@ -283,6 +396,7 @@ def new_sheets(name_list, job_name, job_ID, date_list, job_day, job_names, hours
     #Llenar espacios en blanco de las horas con ceros
     for fila in range(3, int(len(name_list)+3)):
         for columna in range(2,9):
+            new_sheet.cell(row=fila, column=columna).fill = PatternFill(fill_type="solid", fgColor='b4a7d6')
             if new_sheet.cell(row=fila, column=columna).value == None:
                 new_sheet.cell(row=fila, column=columna, value='=0')
             else:
@@ -290,11 +404,14 @@ def new_sheets(name_list, job_name, job_ID, date_list, job_day, job_names, hours
     
     #Agregar celdas con horas diarias
     cell_text_perday = ['TOTAL HOURS DAY - DAILY', 'TOTAL REGULAR HOURS - DAILY', 'TOTAL OVERTIME HOURS - DAILY']
+    titulos_totales_style = ['b6d7a8','f9cb9c','a4c2f4']
     for i in range(len(cell_text_perday)):
         new_sheet['A'+str(len(name_list)+3+i)] = cell_text_perday[i]
+        new_sheet['A'+str(len(name_list)+3+i)].fill = PatternFill(fill_type="solid", fgColor=titulos_totales_style[i])
         #Para este caso se tiene que editar pensando en que las celdas tienen valores dados otras tablas según la plantilla que se usa generalmente, es decir,
         #los valores de la casilla Total Regular Hours - Daily debe variar si hay overtime en alguna de las casillas
         for j in range(len(date_list)):
+            new_sheet[str(chr(66+j))+str(len(name_list)+3+i)].fill = PatternFill(fill_type="solid", fgColor=titulos_totales_style[i])
             if i==0:
                 new_sheet[str(chr(66+j))+str(len(name_list)+3+i)] = "=SUM("+str(chr(66+j))+'3:'+str(chr(66+j))+str(len(name_list)+2)+')'
             elif i==1:
@@ -306,7 +423,9 @@ def new_sheets(name_list, job_name, job_ID, date_list, job_day, job_names, hours
     cell_text_week = ['TOTAL HOURS - WEEKLY', 'TOTAL REGULAR HOURS - WEEKLY', 'TOTAL OVERTIME HOURS - WEEKLY']
     for i in range(len(cell_text_week)):
         new_sheet[str(chr(66+len(date_list)+i))+'2'] = cell_text_week[i]
+        new_sheet[str(chr(66+len(date_list)+i))+'2'].fill = PatternFill(fill_type="solid", fgColor=titulos_totales_style[i])
         for j in range(len(name_list)):
+            new_sheet[str(chr(66+len(date_list)+i))+str(3+j)].fill = PatternFill(fill_type="solid", fgColor=titulos_totales_style[i])
             if i==0:
                 new_sheet[str(chr(66+len(date_list)+i))+str(3+j)] = "=SUM("+str(chr(66))+str(3+j)+':'+str(chr(66+len(date_list)-1))+str(3+j)+')'
             elif i==1:
@@ -315,18 +434,54 @@ def new_sheets(name_list, job_name, job_ID, date_list, job_day, job_names, hours
                 new_sheet[str(chr(66+len(date_list)+i))+str(3+j)] = "=0"
     
     #Realiza la suma de cada una de las columnas
-    new_sheet['I13'] = '=SUM(I3:I'+str(len(name_list)+2)+')'
-    new_sheet['J14'] = '=SUM(J3:J'+str(len(name_list)+2)+')'
-    new_sheet['K15'] = '=SUM(K3:K'+str(len(name_list)+2)+')'
+    new_sheet[f"I{len(name_list)+3}"] = '=SUM(I3:I'+str(len(name_list)+2)+')'
+    new_sheet[f"I{len(name_list)+3}"].fill = PatternFill(fill_type="solid", fgColor='93c47d')
+    new_sheet[f"J{len(name_list)+4}"] = '=SUM(J3:J'+str(len(name_list)+2)+')'
+    new_sheet[f"J{len(name_list)+4}"].fill = PatternFill(fill_type="solid", fgColor='f6b26b')
+    new_sheet[f"K{len(name_list)+5}"] = '=SUM(K3:K'+str(len(name_list)+2)+')'
+    new_sheet[f"K{len(name_list)+5}"].fill = PatternFill(fill_type="solid", fgColor='6d9eeb')
     
     #Llena las celdas vacías
-    for fila in range(int(len(name_list)+3),int(len(name_list)+6)):
-        for columna in range(9,12):
+    for columna in range(9,12):
+        for fila in range(int(len(name_list)+3),int(len(name_list)+6)):                
             if new_sheet.cell(row=fila, column=columna).value == None:
                 new_sheet.cell(row=fila, column=columna, value='-')
+                if columna == 9:
+                    new_sheet.cell(row=fila, column=columna).fill = PatternFill(fill_type="solid", fgColor=titulos_totales_style[fila-len(name_list)-3])
+                elif columna == 10:
+                    new_sheet.cell(row=(len(name_list)+3), column=columna).fill = PatternFill(fill_type="solid", fgColor=titulos_totales_style[1])
+                    new_sheet.cell(row=int(len(name_list)+5), column=columna).fill = PatternFill(fill_type="solid", fgColor=titulos_totales_style[2])
+                elif columna == 11:
+                    new_sheet.cell(row=fila, column=columna).fill = PatternFill(fill_type="solid", fgColor=titulos_totales_style[2])
             else:
                 pass
     
+    centro_style = Alignment(horizontal="center", vertical="center",wrap_text=True)
+
+    tot_rows = new_sheet.max_row #get max row number
+    tot_cols = new_sheet.max_column #get max column number
+    
+    new_sheet.column_dimensions['A'].width = 23
+    new_sheet.row_dimensions[1].height = 56.25
+    new_sheet.row_dimensions[2].height = 56.25
+    
+    for i in range(len(name_list)):
+        new_sheet.row_dimensions[i+3].height = 15.75
+        
+    for i in range(len(name_list)+3,len(name_list)+6):
+        new_sheet.row_dimensions[i].height = 33
+    for i in range(0,12):
+        new_sheet.column_dimensions[chr(i+66)].width = 11.86
+        
+    for c in range(1,tot_cols+1):
+        for r in range(1,tot_rows+1):
+            new_sheet.cell(row=r, column=c).alignment = centro_style
+            new_sheet.cell(row=r, column=c).font = Font(name='Arial', size=10)
+            if new_sheet.cell(row=r, column=c).value != None:
+                new_sheet.cell(row=r, column=c).border = thin_border
+            else:
+                pass
+    new_sheet.cell(row=1, column=2).font = Font(name='Arial', size=24, bold=True, color='FFFFFF')
     workbook.save('test_savedata.xlsx')
     workbook.close()
 
@@ -336,12 +491,21 @@ def general_hours(name_list, date_list):
     sheet_names = workbook.sheetnames
     sheet_names = [sheet_names[i+1] for i in range(len(sheet_names)-1)]
     sheet = workbook['General']
-    #excel_general_sum = '='
+    
+    horas_style = PatternFill(fill_type="solid", fgColor='b4a7d6')
+    
+    thin_border = Border(left=Side(style='thin'), 
+                     right=Side(style='thin'), 
+                     top=Side(style='thin'), 
+                     bottom=Side(style='thin'))
     
     for i in range(len(name_list)):
         for j in range(len(date_list)):
             excel_general_sum = "=SUM('"+str(sheet_names[0])+":"+str(sheet_names[-1])+"'!"+str(chr(66 + int(j)))+str(int(i) + 3)+")"
             sheet[str(chr(66+int(j)))+str(int(i)+3)] = excel_general_sum
+            sheet[str(chr(66+int(j)))+str(int(i)+3)].fill = horas_style
+            sheet[str(chr(66+int(j)))+str(int(i)+3)].border = thin_border
+    
     workbook.save('test_savedata.xlsx')
     workbook.close()
     
@@ -356,6 +520,7 @@ if __name__ == "__main__":
     start_day = input('Fecha de inicio (year-month-day): ')
     start_day_fmt = datetime.strptime(start_day, '%Y-%m-%d')
     end_day = (start_day_fmt + timedelta(days=6)).strftime('%Y-%m-%d')
+    end_day_fmt = start_day_fmt + timedelta(days=6)
     #end_day = input('Fecha final (year-month-day): ')
     
     #Extrae los datos que se usan en todas las hojas de Excel, como los nombres.
@@ -368,7 +533,7 @@ if __name__ == "__main__":
     all_names.sort()
     
     #Crea el archivo final de excel con la hoja 'General'
-    excel_creator(all_names,day_list)
+    excel_creator(all_names,day_list,start_day_fmt,end_day_fmt)
     
     #Agrega variables generales a las hojas nuevas de excel, y agrega horas
     for i in range(len(files)):
