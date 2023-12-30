@@ -9,6 +9,7 @@ import os
 import numpy as np
 from datetime import datetime, timedelta
 import time
+import Interface
 
 def folder_creator(folder_directory,folder_name):
     path = os.path.join(folder_directory, folder_name)
@@ -539,12 +540,19 @@ if __name__ == "__main__":
     
     #Extrae los datos que se usan en todas las hojas de Excel, como los nombres.
     all_names = []
+    all_job_names = []
+    all_job_IDs = []
     day_list = daylist_generator(start_day,end_day)
     for i in range(len(files)):
         names, job_name, job_ID, total_hours, time_list, start_day_job, end_day_job = data_extractor(files_names[i])
         all_names = names + all_names
+        all_job_names.append(str(job_name))
+        all_job_IDs.append(str(job_ID))
     all_names = [str(x) for x in np.unique(all_names)]
     all_names.sort()
+    
+    #Interfase de revisión
+    all_names, all_job_names, all_job_IDs = Interface.interface(all_names,all_job_names,all_job_IDs)
     
     #Crea el archivo final de excel con la hoja 'General'
     excel_creator(all_names,day_list,start_day_fmt,end_day_fmt)
@@ -552,7 +560,7 @@ if __name__ == "__main__":
     #Agrega variables generales a las hojas nuevas de excel, y agrega horas
     for i in range(len(files)):
         names, job_name, job_ID, total_hours, time_list, start_day_job, end_day_job = data_extractor(files_names[i])
-        new_sheets(all_names,job_name,job_ID,day_list,start_day_job,names,total_hours)
+        new_sheets(all_names,all_job_names[i],all_job_IDs[i],day_list,start_day_job,names,total_hours)
         start_day_job = datetime.strptime(start_day_job, "%m/%d/%y")
         start_day_job = (str(start_day_job.strftime('%A'))+" "+ str(start_day_job.day))
 
