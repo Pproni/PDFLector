@@ -4,6 +4,8 @@ from ttkthemes import ThemedStyle
 
 def interface(name_list,job_list,job_ID_list):
     
+    cambios = []
+    
     def cambiar_tema(tema):
         style.set_theme(tema)
 
@@ -38,6 +40,7 @@ def interface(name_list,job_list,job_ID_list):
 
             # Actualizar el valor en la lista de datos
             if selected_option == 'Name list':
+                cambios.append([name_list[selected_index], nuevo_valor])
                 name_list[selected_index] = nuevo_valor
                 # Actualizar el valor en el treeview usando el índice obtenido
                 lista_nombres.item(selected_items[0], values=(nuevo_valor,))
@@ -188,4 +191,4 @@ def interface(name_list,job_list,job_ID_list):
     combobox.bind("<<ComboboxSelected>>", on_combobox_select)
     # Correr la aplicación
     ventana.mainloop()
-    return name_list,job_list,job_ID_list
+    return name_list,job_list,job_ID_list,cambios

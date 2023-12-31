@@ -8,7 +8,6 @@ import re
 import os
 import numpy as np
 from datetime import datetime, timedelta
-import time
 import Interface
 
 def folder_creator(folder_directory,folder_name):
@@ -347,7 +346,7 @@ def excel_creator(name_list, date_list, start_day, end_day):
     workbook.save('test_savedata.xlsx')
     workbook.close()
 
-def new_sheets(name_list, job_name, job_ID, date_list, job_day, job_names, hours):
+def new_sheets(name_list, job_name, job_ID, date_list, job_day, job_names, hours, cambios):
     workbook = load_workbook('test_savedata.xlsx')
     if not str(job_name) in workbook.sheetnames:
         new_sheet = workbook.create_sheet(str(job_name))
@@ -386,6 +385,13 @@ def new_sheets(name_list, job_name, job_ID, date_list, job_day, job_names, hours
     #Agregar horas
     job_day = datetime.strptime(job_day, "%m/%d/%y")
     job_day = (str(job_day.strftime('%A'))+" "+ str(job_day.day))
+    
+    for i in range(len(cambios)):
+        if cambios[i][0] in job_names:
+            indice = job_names.index(cambios[i][0])
+            job_names[indice] = cambios[i][1]
+        else:
+            pass
     
     for i in job_names:
         if i in name_list and job_day in date_list:
@@ -519,7 +525,7 @@ def general_hours(name_list, date_list):
     workbook.close()
     
 if __name__ == "__main__":
-    crono_start = time.time()
+
     #Crea o verifica que las carpetas donde se almacenarán los archivos estén creadas
     folders = ['PDFs', 'SVGs', 'data','Excel']
     for i in folders:
@@ -552,7 +558,7 @@ if __name__ == "__main__":
     all_names.sort()
     
     #Interfase de revisión
-    all_names, all_job_names, all_job_IDs = Interface.interface(all_names,all_job_names,all_job_IDs)
+    all_names, all_job_names, all_job_IDs, cambios = Interface.interface(all_names,all_job_names,all_job_IDs)
     
     #Crea el archivo final de excel con la hoja 'General'
     excel_creator(all_names,day_list,start_day_fmt,end_day_fmt)
@@ -560,7 +566,7 @@ if __name__ == "__main__":
     #Agrega variables generales a las hojas nuevas de excel, y agrega horas
     for i in range(len(files)):
         names, job_name, job_ID, total_hours, time_list, start_day_job, end_day_job = data_extractor(files_names[i])
-        new_sheets(all_names,all_job_names[i],all_job_IDs[i],day_list,start_day_job,names,total_hours)
+        new_sheets(all_names,all_job_names[i],all_job_IDs[i],day_list,start_day_job,names,total_hours,cambios)
         start_day_job = datetime.strptime(start_day_job, "%m/%d/%y")
         start_day_job = (str(start_day_job.strftime('%A'))+" "+ str(start_day_job.day))
 
@@ -569,6 +575,3 @@ if __name__ == "__main__":
     
     #Texto comprobante
     print('우유')
-    
-    crono_stop = time.time()
-    print(f"{crono_stop-crono_start} - [s]")
