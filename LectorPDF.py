@@ -386,6 +386,7 @@ def new_sheets(name_list, job_name, job_ID, date_list, job_day, job_names, hours
     job_day = datetime.strptime(job_day, "%m/%d/%y")
     job_day = (str(job_day.strftime('%A'))+" "+ str(job_day.day))
     
+    #Cambio de los nombres a los nuevos editados
     for i in range(len(cambios)):
         if cambios[i][0] in job_names:
             indice = job_names.index(cambios[i][0])
@@ -497,6 +498,7 @@ def new_sheets(name_list, job_name, job_ID, date_list, job_day, job_names, hours
         for r in range(3,len(name_list)+6):
             new_sheet.cell(row=r, column=c).number_format = '0.00'
     new_sheet.cell(row=1, column=2).font = Font(name='Arial', size=24, bold=True, color='FFFFFF')
+    
     workbook.save('test_savedata.xlsx')
     workbook.close()
 
@@ -523,7 +525,74 @@ def general_hours(name_list, date_list):
     
     workbook.save('test_savedata.xlsx')
     workbook.close()
+
+def Cortfuegos(name_list,job_list,hours_perjob,start_day_perjob,start_day_factura):
+    workbook = load_workbook('test_savedata.xlsx')
+    General_sheet = workbook['General']
     
+    #Días
+    days = [(start_day_factura + timedelta(days=x)) for x in range(7)]
+    days = [str(x.day) for x in days]
+    
+    #Colores
+    Colors = ['00B050','00B0F0','FFC000','CC66FF','8ED7DD','FABF8F','66FFFF']
+    
+    #Bordes
+    thin_border = Border(left=Side(style='thin'), 
+                     right=Side(style='thin'), 
+                     top=Side(style='thin'), 
+                     bottom=Side(style='thin'))    
+    
+    #Títulos
+    General_sheet[f"B{len(name_list)+7}"] = f"# Timesheet"
+    General_sheet[f"C{len(name_list)+7}"] = f"Día"
+    General_sheet[f"D{len(name_list)+7}"] = f"Horas"
+    General_sheet[f"E{len(name_list)+7}"] = f"Trabajo"
+    
+    days_dict = {}
+    for i in days:
+        days_dict[str(i)] = []
+    
+    for i in range(len(job_list)):
+        General_sheet[f"B{len(name_list)+8+i}"] = f"#{i+1}"
+        General_sheet[f"C{len(name_list)+8+i}"] = f"{start_day_perjob[i]}"
+        General_sheet[f"D{len(name_list)+8+i}"] = f"={sum(hours_perjob[i])}"
+        General_sheet[f"D{len(name_list)+8+i}"].number_format = '0.00'
+        General_sheet[f"E{len(name_list)+8+i}"] = f"{job_list[i]}"
+        if str(General_sheet[f"C{len(name_list)+8+i}"].value) in days:
+            index = days.index(General_sheet[f"C{len(name_list)+8+i}"].value)
+            General_sheet[f"C{len(name_list)+8+i}"].fill = PatternFill(fill_type="solid", fgColor=Colors[index])
+            days_dict[str(General_sheet[f"C{len(name_list)+8+i}"].value)].append(sum(hours_perjob[i]))
+        else:
+            print('pasa algo')
+    for i in range(len(days)):
+        General_sheet[f"F{len(name_list)+8+i}"] = f"={sum(days_dict[str(days[i])])}"
+        General_sheet[f"F{len(name_list)+8+i}"].number_format = '0.00'
+        General_sheet[f"F{len(name_list)+8+i}"].fill = PatternFill(fill_type="solid", fgColor=Colors[i])
+    General_sheet[f"F{len(name_list)+8+len(days)}"] = f"=SUM(F{len(name_list)+8}:F{len(name_list)+7+len(days)})"
+    General_sheet[f"F{len(name_list)+8+len(days)}"].fill = PatternFill(fill_type="solid", fgColor='FFFF00')
+    General_sheet[f"F{len(name_list)+8+len(days)}"].number_format = '0.00'
+    
+    #Parte final
+    General_sheet[f"C{len(name_list)+8+len(job_list)}"] = f"TOTAL"
+    General_sheet[f"C{len(name_list)+8+len(job_list)}"].fill = PatternFill(fill_type="solid", fgColor='FFFF00')
+    General_sheet[f"D{len(name_list)+8+len(job_list)}"] = f"=SUM(D{len(name_list)+8}:D{len(name_list)+7+len(job_list)})"
+    General_sheet[f"D{len(name_list)+8+len(job_list)}"].number_format = '0.00'
+    General_sheet[f"D{len(name_list)+8+len(job_list)}"].fill = PatternFill(fill_type="solid", fgColor='FFFF00')
+    
+    centro_style = Alignment(horizontal="center", vertical="center",wrap_text=True)
+    for c in range(2,7):
+        for r in range(len(name_list)+7,len(name_list)+7+len(job_list)+2):
+            General_sheet.cell(row=r, column=c).alignment = centro_style
+            General_sheet.cell(row=r, column=c).font = Font(name='Arial', size=10)
+            if General_sheet.cell(row=r, column=c).value != None:
+                General_sheet.cell(row=r, column=c).border = thin_border
+            else:
+                pass            
+            
+    workbook.save('test_savedata.xlsx')
+    workbook.close()
+     
 if __name__ == "__main__":
 
     #Crea o verifica que las carpetas donde se almacenarán los archivos estén creadas
@@ -548,9 +617,11 @@ if __name__ == "__main__":
     all_names = []
     all_job_names = []
     all_job_IDs = []
+    hours_per_job = []
     day_list = daylist_generator(start_day,end_day)
     for i in range(len(files)):
         names, job_name, job_ID, total_hours, time_list, start_day_job, end_day_job = data_extractor(files_names[i])
+        hours_per_job.append(total_hours)
         all_names = names + all_names
         all_job_names.append(str(job_name))
         all_job_IDs.append(str(job_ID))
@@ -561,15 +632,19 @@ if __name__ == "__main__":
     all_names, all_job_names, all_job_IDs, cambios = Interface.interface(all_names,all_job_names,all_job_IDs)
     
     #Crea el archivo final de excel con la hoja 'General'
-    excel_creator(all_names,day_list,start_day_fmt,end_day_fmt)
-    
+    excel_creator(all_names,day_list,start_day_fmt,end_day_fmt)    
+    start_days_perjob = []
     #Agrega variables generales a las hojas nuevas de excel, y agrega horas
     for i in range(len(files)):
         names, job_name, job_ID, total_hours, time_list, start_day_job, end_day_job = data_extractor(files_names[i])
         new_sheets(all_names,all_job_names[i],all_job_IDs[i],day_list,start_day_job,names,total_hours,cambios)
         start_day_job = datetime.strptime(start_day_job, "%m/%d/%y")
+        start_days_perjob.append(start_day_job.day)
         start_day_job = (str(start_day_job.strftime('%A'))+" "+ str(start_day_job.day))
-
+    
+    #Cortafuegos
+    Cortfuegos(all_names,all_job_names,hours_per_job, start_days_perjob,start_day_fmt)
+    
     #Agregar la suma total en la hoja general
     general_hours(all_names,day_list)
     
