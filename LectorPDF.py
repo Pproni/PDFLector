@@ -565,13 +565,20 @@ def Cortfuegos(name_list,job_list,hours_perjob,start_day_perjob,start_day_factur
             days_dict[str(General_sheet[f"C{len(name_list)+8+i}"].value)].append(sum(hours_perjob[i]))
         else:
             print('pasa algo')
+            
+    centro_style = Alignment(horizontal="center", vertical="center",wrap_text=True)
+                
     for i in range(len(days)):
         General_sheet[f"F{len(name_list)+8+i}"] = f"={sum(days_dict[str(days[i])])}"
         General_sheet[f"F{len(name_list)+8+i}"].number_format = '0.00'
         General_sheet[f"F{len(name_list)+8+i}"].fill = PatternFill(fill_type="solid", fgColor=Colors[i])
+        General_sheet[f"F{len(name_list)+8+i}"].border = thin_border
+        General_sheet[f"F{len(name_list)+8+i}"].alignment = centro_style        
     General_sheet[f"F{len(name_list)+8+len(days)}"] = f"=SUM(F{len(name_list)+8}:F{len(name_list)+7+len(days)})"
     General_sheet[f"F{len(name_list)+8+len(days)}"].fill = PatternFill(fill_type="solid", fgColor='FFFF00')
     General_sheet[f"F{len(name_list)+8+len(days)}"].number_format = '0.00'
+    General_sheet[f"F{len(name_list)+8+len(days)}"].border = thin_border
+    General_sheet[f"F{len(name_list)+8+len(days)}"].alignment = centro_style  
     
     #Parte final
     General_sheet[f"C{len(name_list)+8+len(job_list)}"] = f"TOTAL"
@@ -580,9 +587,8 @@ def Cortfuegos(name_list,job_list,hours_perjob,start_day_perjob,start_day_factur
     General_sheet[f"D{len(name_list)+8+len(job_list)}"].number_format = '0.00'
     General_sheet[f"D{len(name_list)+8+len(job_list)}"].fill = PatternFill(fill_type="solid", fgColor='FFFF00')
     
-    centro_style = Alignment(horizontal="center", vertical="center",wrap_text=True)
     for c in range(2,7):
-        for r in range(len(name_list)+7,len(name_list)+7+len(job_list)+2):
+        for r in range(len(name_list)+7,len(name_list)+7+len(job_list)+3):
             General_sheet.cell(row=r, column=c).alignment = centro_style
             General_sheet.cell(row=r, column=c).font = Font(name='Arial', size=10)
             if General_sheet.cell(row=r, column=c).value != None:
