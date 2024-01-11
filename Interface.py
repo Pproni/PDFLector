@@ -146,7 +146,7 @@ def interface(name_list,job_list,job_ID_list):
     # Crear la ventana principal
     ventana = tk.Tk()
     ventana.geometry('800x400')
-    ventana.title("Interfaz con Tkinter")
+    ventana.title("Editor de datos")
 
     # Crear un estilo temático con ttkthemes
     style = ThemedStyle(ventana)

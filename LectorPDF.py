@@ -10,15 +10,18 @@ import numpy as np
 from datetime import datetime, timedelta
 import Interface
 
-def folder_creator(folder_directory,folder_name):
+def folder_creator(folder_directory, folder_name):
     path = os.path.join(folder_directory, folder_name)
-    if not os.path.exists(path):
-        os.mkdir(path)
+    os.makedirs(path, exist_ok=True)
 
 def check_pdfs(path):
-    files = os.listdir(path)
-    spliting = [element.split('.', 1) for element in files]
-    files_names = [spliting[i][0] for i in range(len(spliting))]
+    files = []
+    files_names = []
+    for file in os.listdir(path):
+        filename, extension = os.path.splitext(file)
+        if extension.lower() == '.pdf':
+            files.append(file)
+            files_names.append(filename)
     return files, files_names
 
 def pdf2svg(pdf,pdf_name,x=1800,y=1600):
@@ -526,7 +529,7 @@ def general_hours(name_list, date_list):
     workbook.save('test_savedata.xlsx')
     workbook.close()
 
-def Cortfuegos(name_list,job_list,hours_perjob,start_day_perjob,start_day_factura):
+def Cortafuegos(name_list,job_list,hours_perjob,start_day_perjob,start_day_factura):
     workbook = load_workbook('test_savedata.xlsx')
     General_sheet = workbook['General']
     
@@ -598,61 +601,3 @@ def Cortfuegos(name_list,job_list,hours_perjob,start_day_perjob,start_day_factur
             
     workbook.save('test_savedata.xlsx')
     workbook.close()
-     
-if __name__ == "__main__":
-
-    #Crea o verifica que las carpetas donde se almacenarán los archivos estén creadas
-    folders = ['PDFs', 'SVGs', 'data','Excel']
-    for i in folders:
-        folder_creator(str(os.getcwd()),i)
-    files, files_names = check_pdfs(os.path.join(str(os.getcwd()),'PDFs'))
-    
-    #for i in range(len(files)):
-    #    pdf2svg(files[i],files_names[i])
-    #for i in range(len(files)):
-    #    pdf2excel(files[i],files_names[i])
-    
-    #Introducción de los días inicial y final de la semana de trabajo
-    start_day = input('Fecha de inicio (year-month-day): ')
-    start_day_fmt = datetime.strptime(start_day, '%Y-%m-%d')
-    end_day = (start_day_fmt + timedelta(days=6)).strftime('%Y-%m-%d')
-    end_day_fmt = start_day_fmt + timedelta(days=6)
-    #end_day = input('Fecha final (year-month-day): ')
-    
-    #Extrae los datos que se usan en todas las hojas de Excel, como los nombres.
-    all_names = []
-    all_job_names = []
-    all_job_IDs = []
-    hours_per_job = []
-    day_list = daylist_generator(start_day,end_day)
-    for i in range(len(files)):
-        names, job_name, job_ID, total_hours, time_list, start_day_job, end_day_job = data_extractor(files_names[i])
-        hours_per_job.append(total_hours)
-        all_names = names + all_names
-        all_job_names.append(str(job_name))
-        all_job_IDs.append(str(job_ID))
-    all_names = [str(x) for x in np.unique(all_names)]
-    all_names.sort()
-    
-    #Interfase de revisión
-    all_names, all_job_names, all_job_IDs, cambios = Interface.interface(all_names,all_job_names,all_job_IDs)
-    
-    #Crea el archivo final de excel con la hoja 'General'
-    excel_creator(all_names,day_list,start_day_fmt,end_day_fmt)    
-    start_days_perjob = []
-    #Agrega variables generales a las hojas nuevas de excel, y agrega horas
-    for i in range(len(files)):
-        names, job_name, job_ID, total_hours, time_list, start_day_job, end_day_job = data_extractor(files_names[i])
-        new_sheets(all_names,all_job_names[i],all_job_IDs[i],day_list,start_day_job,names,total_hours,cambios)
-        start_day_job = datetime.strptime(start_day_job, "%m/%d/%y")
-        start_days_perjob.append(start_day_job.day)
-        start_day_job = (str(start_day_job.strftime('%A'))+" "+ str(start_day_job.day))
-    
-    #Cortafuegos
-    Cortfuegos(all_names,all_job_names,hours_per_job, start_days_perjob,start_day_fmt)
-    
-    #Agregar la suma total en la hoja general
-    general_hours(all_names,day_list)
-    
-    #Texto comprobante
-    print('우유')
