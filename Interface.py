@@ -5,6 +5,7 @@ from ttkthemes import ThemedStyle
 def interface(name_list,job_list,job_ID_list):
     
     cambios = []
+    cambios_jobs = []
     
     def cambiar_tema(tema):
         style.set_theme(tema)
@@ -46,6 +47,7 @@ def interface(name_list,job_list,job_ID_list):
                 lista_nombres.item(selected_items[0], values=(nuevo_valor,))
             elif selected_option == 'Job list':
                 if selected_radio_option == "Opción 1":
+                    cambios_jobs.append([job_list[selected_index],nuevo_valor])
                     job_list[selected_index] = nuevo_valor
                     lista_nombres.item(selected_items[0], values=(nuevo_valor,job_ID_list[selected_index]))
                 elif selected_radio_option == "Opción 2":
@@ -191,4 +193,4 @@ def interface(name_list,job_list,job_ID_list):
     combobox.bind("<<ComboboxSelected>>", on_combobox_select)
     # Correr la aplicación
     ventana.mainloop()
-    return name_list,job_list,job_ID_list,cambios
+    return name_list,job_list,job_ID_list,cambios,cambios_jobs

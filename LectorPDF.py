@@ -100,6 +100,9 @@ def data_extractor(excel_file):
             else:
                 print('Hay un dato atípico en la fila: '+j)
                 pass
+    #Conversión de horas string a horas flotantes
+    time_list = [[int(time) for time in sublist] for sublist in time_list]
+
     #Extracción de Trabajo, código de trabajo, fecha de inicio y final
     job_ID_text = re.split('(\d+)',str(sheet[str("F4")].value).replace(" ",""))
     job_name = (str(sheet[str("F7")].value).replace(" ","")).replace("\n","")
@@ -345,11 +348,14 @@ def excel_creator(name_list, date_list, start_day, end_day):
             sheet.cell(row=r, column=c).number_format = '0.00'
             
     sheet.cell(row=1, column=2).font = Font(name='Arial', size=24, bold=True, color='FFFFFF')
+    #Fijar columnas y filas
+    sheet.freeze_panes = 'B3'
+    
     # Guardar el libro de trabajo en un archivo
     workbook.save('test_savedata.xlsx')
     workbook.close()
 
-def new_sheets(name_list, job_name, job_ID, date_list, job_day, job_names, hours, cambios):
+def new_sheets(name_list, job_name, job_ID, date_list, job_day, job_names, hours):
     workbook = load_workbook('test_savedata.xlsx')
     if not str(job_name) in workbook.sheetnames:
         new_sheet = workbook.create_sheet(str(job_name))
@@ -390,12 +396,12 @@ def new_sheets(name_list, job_name, job_ID, date_list, job_day, job_names, hours
     job_day = (str(job_day.strftime('%A'))+" "+ str(job_day.day))
     
     #Cambio de los nombres a los nuevos editados
-    for i in range(len(cambios)):
-        if cambios[i][0] in job_names:
-            indice = job_names.index(cambios[i][0])
-            job_names[indice] = cambios[i][1]
-        else:
-            pass
+    #for i in range(len(cambios)):
+    #    if cambios[i][0] in job_names:
+    #        indice = job_names.index(cambios[i][0])
+    #        job_names[indice] = cambios[i][1]
+    #    else:
+    #        pass
     
     for i in job_names:
         if i in name_list and job_day in date_list:
@@ -502,6 +508,10 @@ def new_sheets(name_list, job_name, job_ID, date_list, job_day, job_names, hours
             new_sheet.cell(row=r, column=c).number_format = '0.00'
     new_sheet.cell(row=1, column=2).font = Font(name='Arial', size=24, bold=True, color='FFFFFF')
     
+    #Fijar filas y columnas
+    new_sheet.freeze_panes = 'B3'
+    
+    #Guardado y cerrado del documento
     workbook.save('test_savedata.xlsx')
     workbook.close()
 
@@ -521,8 +531,8 @@ def general_hours(name_list, date_list):
     
     for i in range(len(name_list)):
         for j in range(len(date_list)):
-            excel_general_sum = "=SUM('"+str(sheet_names[0])+":"+str(sheet_names[-1])+"'!"+str(chr(66 + int(j)))+str(int(i) + 3)+")"
-            sheet[str(chr(66+int(j)))+str(int(i)+3)] = excel_general_sum
+            formula_suma = '+'.join([f"'{hoja}'!{chr(66 + int(j))}{int(i) + 3}" for hoja in sheet_names])
+            sheet[str(chr(66+int(j)))+str(int(i)+3)] = f"=SUM({formula_suma})"
             sheet[str(chr(66+int(j)))+str(int(i)+3)].fill = horas_style
             sheet[str(chr(66+int(j)))+str(int(i)+3)].border = thin_border
     

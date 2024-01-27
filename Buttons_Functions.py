@@ -1,5 +1,5 @@
 from LectorPDF import *
-import threading
+import Overtime
 
 files, files_names = check_pdfs(os.path.join(str(os.getcwd()),'PDFs'))
 
@@ -54,7 +54,7 @@ def Data_process():
     all_names.sort()
     
     #Interfase de revisión
-    all_names, all_job_names, all_job_IDs, cambios = Interface.interface(all_names,all_job_names,all_job_IDs)
+    all_names, all_job_names, all_job_IDs, cambios, cambios_jobs = Interface.interface(all_names,all_job_names,all_job_IDs)
     
     all_names = [str(x) for x in np.unique(all_names)]
     all_names.sort()
@@ -62,19 +62,37 @@ def Data_process():
     #Crea el archivo final de excel con la hoja 'General'
     excel_creator(all_names,day_list,start_day_fmt,end_day_fmt)    
     start_days_perjob = []
+    
+    #Lista con los datos para el overtime
+    Overtime_data = []
+    
     #Agrega variables generales a las hojas nuevas de excel, y agrega horas
     for i in range(len(files)):
+        #Extrae los datos
         names, job_name, job_ID, total_hours, time_list, start_day_job, end_day_job = data_extractor(files_names[i])
-        new_sheets(all_names,all_job_names[i],all_job_IDs[i],day_list,start_day_job,names,total_hours,cambios)
+        #Cambiar el formato de time_list para cuando el trabajo termine en el día siguiente al que comenzó
+        for j in range(len(time_list)):
+            if int(time_list[j][0]) > int(time_list[j][-1]):
+                time_list[j][-1] = int(time_list[j][-1])+2400
+        #Aplica los cambios hechos en la interfaz a las variables nombres de empleados y de trabajos
+        names, job_name = Overtime.apply_cambios(names,job_name,cambios,cambios_jobs)
+        #Crea las hojas del excel y acomoda las horas
+        new_sheets(all_names,all_job_names[i],all_job_IDs[i],day_list,start_day_job,names,total_hours)
+        #Cambia el formato del día de inicio del trabajo
         start_day_job = datetime.strptime(start_day_job, "%m/%d/%y")
         start_days_perjob.append(start_day_job.day)
         start_day_job = (str(start_day_job.strftime('%A'))+" "+ str(start_day_job.day))
-    
+        #Agrega los datos necesarios para el overtime en una lista
+        Overtime_data.append([start_day_job,job_name,names,time_list, total_hours])
+            
     #Cortafuegos
     Cortafuegos(all_names,all_job_names,hours_per_job, start_days_perjob,start_day_fmt)
     
     #Agregar la suma total en la hoja general
     general_hours(all_names,day_list)
+    
+    #Overtime
+    Overtime.Overtime_checker(all_names,day_list,Overtime_data)
     
     #Texto comprobante
     print('우유')
