@@ -67,10 +67,10 @@ def Overtime_checker(name_list,date_list, overtime_data):
         for j in range(len(name_list)):
             filter_list_iterable = list(filter_list)
             #Se revisa que el valor del overtime en el día que se está revisando sea distinto de cero
-            overtime_value_day = 0
+            overtime_value_day = float(0)
             if (General_sheet_values[get_excel_column_name(29 + i + espacio_pagos) + str(j+ 3)].value) != 0:
                 #Se extrae el overtime de la persona
-                overtime_value_day = General_sheet_values[get_excel_column_name(29 + i + espacio_pagos) + str(j+ 3)].value
+                overtime_value_day = float(General_sheet_values[get_excel_column_name(29 + i + espacio_pagos) + str(j+ 3)].value)
                 #Se filtra nuevamente la lista buscando solo los elementos que contengan el nombre de la persona que se está revisando
                 filter_list_iterable = [sublista for sublista in filter_list_iterable if name_list[j] in sublista[2]]
                 #Se crea una nueva lista que ordene cuál de las sublistas de filter_list_iterable termina más tarde,
@@ -80,7 +80,7 @@ def Overtime_checker(name_list,date_list, overtime_data):
                     indice_sublista = sublista[2].index(name_list[j])
                     filter_by_hour.append([indice,indice_sublista,sublista[3][indice_sublista],sublista[4][indice_sublista],sublista[1]])
                 filter_by_hour.sort(key=lambda x: x[2], reverse=True)
-                print(name_list[j],date_list[i] ,filter_by_hour)
+                #print(name_list[j],date_list[i] ,filter_by_hour)
                 for k in range(len(filter_by_hour)):
                     #Se crean las hojas que se van a trabajar, con fórmulas de excel y valores resultado de las fórmulas
                     Sheet_job = workbook[f'{filter_by_hour[k][-1]}']

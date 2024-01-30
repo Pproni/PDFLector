@@ -383,7 +383,7 @@ def new_sheets(name_list, job_name, job_ID, date_list, job_day, job_names, hours
     
     #Agregar Nombres
     for i in range(len(name_list)):
-        new_sheet['A'+str(i+3)] = name_list[i]
+        new_sheet['A'+str(i+3)] = f"=General!A{i+3}"
         new_sheet['A'+str(i+3)].fill = Nombres_style
     
     #Agregar fechas
