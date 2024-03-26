@@ -1,5 +1,7 @@
 from LectorPDF import *
 import Overtime
+import SQLite_Database as SQLil
+import Calendar
 
 files, files_names = check_pdfs(os.path.join(str(os.getcwd()),'PDFs'))
 
@@ -33,6 +35,7 @@ def Conversion_process():
 def Data_process():
     #Introducción de los días inicial y final de la semana de trabajo
     start_day = input('Fecha de inicio (year-month-day): ')
+    #start_day = Calendar.mostrar_calendario()
     start_day_fmt = datetime.strptime(start_day, '%Y-%m-%d')
     end_day = (start_day_fmt + timedelta(days=6)).strftime('%Y-%m-%d')
     end_day_fmt = start_day_fmt + timedelta(days=6)
@@ -53,9 +56,25 @@ def Data_process():
     all_names = [str(x) for x in np.unique(all_names)]
     all_names.sort()
     
-    #Interfase de revisión
-    all_names, all_job_names, all_job_IDs, cambios, cambios_jobs = Interface.interface(all_names,all_job_names,all_job_IDs)
+    #Revisión de base de datos
+    cambios_DB = SQLil.getValuesList('Names_changes','Initial_Date',start_day)
+    cambios_jobs_DB = SQLil.getValuesList('Jobs_changes','Initial_Date',start_day)    
     
+#    if cambios_DB:
+#        for i in range(len(cambios_DB)):
+#            if cambios_DB[i][0] in all_names:
+#                indice = all_names.index(cambios_DB[i][0])
+#                all_names[indice] = cambios_DB[i][1]
+#    if cambios_jobs_DB:
+#        for i in range(len(cambios_jobs_DB)):
+#            if cambios_jobs_DB[i][0] in all_job_names:
+#                indice = all_job_names.index(cambios_jobs_DB[i][0])
+#                all_job_names[indice] = cambios_jobs_DB[i][1]
+    
+    #Interfase de revisión
+    all_names, all_job_names, all_job_IDs, cambios, cambios_jobs = Interface.interface(all_names,all_job_names,all_job_IDs, cambios_DB, cambios_jobs_DB, start_day)
+        
+    #Reordenamiento de la lista de nombres
     all_names = [str(x) for x in np.unique(all_names)]
     all_names.sort()
     
@@ -93,6 +112,9 @@ def Data_process():
     
     #Overtime
     Overtime.Overtime_checker(all_names,day_list,Overtime_data)
+    
+    #Tabla de supervisores
+    Overtime.Supervisor_boxes(all_names, all_job_names)
     
     #Texto comprobante
     print('우유')

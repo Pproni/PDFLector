@@ -106,3 +106,90 @@ def Overtime_checker(name_list,date_list, overtime_data):
     workbook.save('test_savedata.xlsx')
     workbook_values.close()
     workbook.close()
+    
+def Supervisor_boxes(name_list, all_job_names):
+    def get_excel_column_name(column_number):
+        """
+        Convierte el número de columna al estilo de nombre de columna de excel.
+        Ej: 1->A, 2->B, 26->Z, 27->AA, etc.
+        """
+        result = ""
+        while column_number > 0:
+            remainder = (column_number - 1) % 26
+            result = chr(65 + remainder) + result
+            column_number = (column_number - 1) // 26
+        return str(result)
+    
+    just_open('test_savedata.xlsx')
+    
+    workbook = load_workbook('test_savedata.xlsx')
+    workbook_values = load_workbook('test_savedata.xlsx', data_only=True)
+    General_sheet = workbook['General']
+    
+    sheet_names = workbook.sheetnames
+    sheet_names.pop(0)
+    
+    thin_border = Border(left=Side(style='thin'), 
+                     right=Side(style='thin'), 
+                     top=Side(style='thin'), 
+                     bottom=Side(style='thin'))
+    
+    Supervisores = ['Pedro Forero', 'Roberto Vasquez']
+    General_sheet[f'H{len(name_list) + 7}'].fill = PatternFill(fill_type="solid", fgColor="ea9999")
+    General_sheet[f'I{len(name_list) + 7}'].fill = PatternFill(fill_type="solid", fgColor="ea9999")
+    General_sheet[f'H{len(name_list) + 8}'] = Supervisores[0]
+    General_sheet[f'H{len(name_list) + 8}'].fill = PatternFill(fill_type="solid", fgColor="ea9999")
+    General_sheet[f'H{len(name_list) + 10}'] = Supervisores[1]
+    General_sheet[f'H{len(name_list) + 10}'].fill = PatternFill(fill_type="solid", fgColor="ea9999")
+    General_sheet.merge_cells(start_row=(len(name_list) + 8), start_column=8, end_row=(len(name_list) + 9), end_column=8)
+    General_sheet.merge_cells(start_row=(len(name_list) + 10), start_column=8, end_row=(len(name_list) + 11), end_column=8)
+    
+    text_hours = ['Horas regulares', 'Horas overtime']
+    for i in range(len(text_hours)):
+        General_sheet[f'I{len(name_list) + 8 + 2*i}'] = text_hours[0]
+        General_sheet[f'I{len(name_list) + 8 + 2*i}'].fill = PatternFill(fill_type="solid", fgColor="f9cb9c")
+        General_sheet[f'I{len(name_list) + 9 + 2*i}'] = text_hours[1]
+        General_sheet[f'I{len(name_list) + 9 + 2*i}'].fill = PatternFill(fill_type="solid", fgColor="a4c2f4")
+    
+    Pedro_index = name_list.index(Supervisores[0])
+    Roberto_index = name_list.index(Supervisores[1])
+    
+    counter = 0
+    for i in range(len(sheet_names)):
+        sheet_job = workbook_values[f'{sheet_names[i]}']
+        if float(sheet_job[f'J{Pedro_index + 3}'].value) != float(0) or float(sheet_job[f'K{Pedro_index + 3}'].value) != float(0):
+            General_sheet[f'{get_excel_column_name(10 + counter)}{len(name_list) + 7}'] = f'{sheet_names[i]}'
+            General_sheet[f'{get_excel_column_name(10 + counter)}{len(name_list) + 7}'].fill = PatternFill(fill_type="solid", fgColor="ea9999")
+            for j in range(len(text_hours)):
+                General_sheet[f'{get_excel_column_name(10 + counter)}{len(name_list) + 8 + 2*j}'] = f"='{sheet_names[i]}'!J{name_list.index(Supervisores[j]) + 3}"
+                General_sheet[f'{get_excel_column_name(10 + counter)}{len(name_list) + 8 + 2*j}'].number_format = '0.00'
+                General_sheet[f'{get_excel_column_name(10 + counter)}{len(name_list) + 8 + 2*j}'].fill = PatternFill(fill_type="solid", fgColor="b7b7b7")
+                General_sheet[f'{get_excel_column_name(10 + counter)}{len(name_list) + 9 + 2*j}'] = f"='{sheet_names[i]}'!K{name_list.index(Supervisores[j]) + 3}"
+                General_sheet[f'{get_excel_column_name(10 + counter)}{len(name_list) + 9 + 2*j}'].number_format = '0.00'
+                General_sheet[f'{get_excel_column_name(10 + counter)}{len(name_list) + 9 + 2*j}'].fill = PatternFill(fill_type="solid", fgColor="b7b7b7")
+            counter += 1
+        elif float(sheet_job[f'J{Roberto_index + 3}'].value) != float(0) or float(sheet_job[f'K{Roberto_index + 3}'].value) != float(0):
+            General_sheet[f'{get_excel_column_name(10 + counter)}{len(name_list) + 7}'] = sheet_names[i]
+            General_sheet[f'{get_excel_column_name(10 + counter)}{len(name_list) + 7}'].fill = PatternFill(fill_type="solid", fgColor="ea9999")
+            for j in range(len(text_hours)):
+                General_sheet[f'{get_excel_column_name(10 + counter)}{len(name_list) + 8 + 2*j}'] = f"='{sheet_names[i]}'!J{name_list.index(Supervisores[j]) + 3}"
+                General_sheet[f'{get_excel_column_name(10 + counter)}{len(name_list) + 8 + 2*j}'].number_format = '0.00'
+                General_sheet[f'{get_excel_column_name(10 + counter)}{len(name_list) + 8 + 2*j}'].fill = PatternFill(fill_type="solid", fgColor="b7b7b7")
+                General_sheet[f'{get_excel_column_name(10 + counter)}{len(name_list) + 9 + 2*j}'] = f"='{sheet_names[i]}'!K{name_list.index(Supervisores[j]) + 3}"
+                General_sheet[f'{get_excel_column_name(10 + counter)}{len(name_list) + 9 + 2*j}'].number_format = '0.00'
+                General_sheet[f'{get_excel_column_name(10 + counter)}{len(name_list) + 9 + 2*j}'].fill = PatternFill(fill_type="solid", fgColor="b7b7b7")
+            counter += 1
+        else:
+            pass
+    
+    centro_style = Alignment(horizontal="center", vertical="center",wrap_text=True)
+    for c in range(8,counter + 10):
+        for r in range(len(name_list) + 7,len(name_list) + 12):
+            General_sheet.cell(row=r, column=c).alignment = centro_style
+            General_sheet.cell(row=r, column=c).font = Font(name='Arial', size=10)
+            General_sheet.cell(row=r, column=c).border = thin_border
+    
+    
+    workbook.save('test_savedata.xlsx')
+    workbook_values.close()
+    workbook.close()

@@ -394,15 +394,7 @@ def new_sheets(name_list, job_name, job_ID, date_list, job_day, job_names, hours
     #Agregar horas
     job_day = datetime.strptime(job_day, "%m/%d/%y")
     job_day = (str(job_day.strftime('%A'))+" "+ str(job_day.day))
-    
-    #Cambio de los nombres a los nuevos editados
-    #for i in range(len(cambios)):
-    #    if cambios[i][0] in job_names:
-    #        indice = job_names.index(cambios[i][0])
-    #        job_names[indice] = cambios[i][1]
-    #    else:
-    #        pass
-    
+      
     for i in job_names:
         if i in name_list and job_day in date_list:
             row = name_list.index(str(i))
