@@ -135,7 +135,7 @@ def Supervisor_boxes(name_list, all_job_names):
                      top=Side(style='thin'), 
                      bottom=Side(style='thin'))
     
-    Supervisores = ['Pedro Forero', 'Pedro Forero']
+    Supervisores = ['Andry Matos', 'Andry Matos']
     General_sheet[f'H{len(name_list) + 7}'].fill = PatternFill(fill_type="solid", fgColor="ea9999")
     General_sheet[f'I{len(name_list) + 7}'].fill = PatternFill(fill_type="solid", fgColor="ea9999")
     General_sheet[f'H{len(name_list) + 8}'] = Supervisores[0]

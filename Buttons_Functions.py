@@ -2,6 +2,7 @@ from LectorPDF import *
 import Overtime
 import SQLite_Database as SQLil
 import Calendar
+import difflib
 
 files, files_names = check_pdfs(os.path.join(str(os.getcwd()),'PDFs'))
 global place
@@ -70,6 +71,7 @@ def Data_process():
             names, job_name, job_ID, total_hours,*_ = data_extractor(files_names[i], place)
             all_job_names.append(str(job_name))
             all_job_IDs.append(str(job_ID))
+            hours_per_job.append(total_hours)
             #if names in all_names:
                 
         
@@ -79,10 +81,11 @@ def Data_process():
         
     #Interfase de revisión
     all_names, all_job_names, all_job_IDs, cambios, cambios_jobs = Interface.interface(all_names,all_job_names,all_job_IDs, cambios_DB, cambios_jobs_DB, start_day)
-        
+    #print(all_names, 'check 1')
     #Reordenamiento de la lista de nombres
     all_names = [str(x) for x in np.unique(all_names)]
     all_names.sort()
+    #print(all_names, 'check 2')
     
     #Crea el archivo final de excel con la hoja 'General'
     excel_creator(all_names,day_list,start_day_fmt,end_day_fmt)    
@@ -95,8 +98,46 @@ def Data_process():
     for i in range(len(files)):
         #Extrae los datos
         names, job_name, job_ID, total_hours, time_list, start_day_job, end_day_job = data_extractor(files_names[i], place)
+        #print(names,total_hours,job_name, 'check 3')
         if place == 'celtic':
-            names = [x for x in names if x in all_names]
+            def compare_words_levenshtein_advanced(word1, word2, threshold=0.8):
+                # Ignorar mayúsculas y espacios adicionales
+                word1_clean = word1.lower().replace(" ", "")
+                word2_clean = word2.lower().replace(" ", "")
+
+                # Calcular el ratio de similitud
+                ratio = difflib.SequenceMatcher(None, word1_clean, word2_clean).ratio()
+                return ratio >= threshold
+
+            # Aplicar la similitud de Levenshtein entre la lista names y all_names, quitando espacios y mayúsculas
+            # y devolviendo el nombre en el formato de all_names, además de capturar los índices eliminados
+            def filter_similar_names_with_removed_indices(names, all_names, threshold=0.8):
+                result = []
+                removed_indices = []  # Lista para almacenar los índices de los nombres que son eliminados
+
+                for index, name in enumerate(names):
+                    found_match = False
+                    for ref_name in all_names:
+                        if compare_words_levenshtein_advanced(name, ref_name, threshold):
+                            result.append(ref_name)  # Devolver el nombre en el formato de all_names
+                            found_match = True
+                            break
+                        
+                    # Si no se encontró coincidencia, agregar el índice a la lista de eliminados
+                    if not found_match:
+                        removed_indices.append(index)           
+
+                return result, removed_indices
+
+            # Llamar a la función para filtrar los nombres y obtener los índices eliminados
+            names, removed_indices = filter_similar_names_with_removed_indices(names, all_names)
+            
+            def remove_by_indices(original_list, removed_indices):
+                return [item for idx, item in enumerate(original_list) if idx not in removed_indices]
+            total_hours = remove_by_indices(total_hours, removed_indices)
+            #names = filter_similar_names_advanced(names, all_names)
+            #names = [x for x in names if x in all_names]
+            #print(names, 'check 4')
         #Cambiar el formato de time_list para cuando el trabajo termine en el día siguiente al que comenzó
         for j in range(len(time_list)):
             if int(time_list[j][0]) > int(time_list[j][-1]):

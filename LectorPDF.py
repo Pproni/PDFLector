@@ -150,10 +150,9 @@ def data_extractor(excel_file, place):
                 clock_list = [time_list.append([ampm_24h(str(c1.value)), (str(c3.value)).replace(':',''),ampm_24h(str(c2.value))]) for (c1,c2,c3) in cells]
                 #print(clock_list)
                 time_list = [[(h1),h2,(h3)] for x in time_list for (h1,h2,h3) in [x]]
-                time_list = list(filter(None,time_list))             
-
+                time_list = list(filter(None,time_list))
+        
         time_list = [[int(time) for time in sublist] for sublist in time_list]
-
         #Extracción de Trabajo, código de trabajo, fecha de inicio y final
         job_ID_text = str(sheet[str("E1")].value)
         job_name = str(sheet[str("E2")].value)
@@ -447,18 +446,25 @@ def new_sheets(name_list, job_name, job_ID, date_list, job_day, job_names, hours
     #Agregar horas
     job_day = datetime.strptime(job_day, "%m/%d/%y")
     job_day = (str(job_day.strftime('%A'))+" "+ str(job_day.day))
-      
+    
+    name_list_cleaned = [name.strip().lower() for name in name_list]
     for i in job_names:
-        if i in name_list and job_day in date_list:
-            row = name_list.index(str(i))
-            column = date_list.index(str(job_day))
-            if new_sheet[str(chr(66+int(column)))+str(int(row)+3)].value == None:
-                new_sheet[str(chr(66+int(column)))+str(int(row)+3)] = '='+str("{:.2f}".format(hours[job_names.index(str(i))]))
-            else:
-                new_sheet[str(chr(66+int(column)))+str(int(row)+3)] = new_sheet[str(chr(66+int(column)))+str(int(row)+3)].value +'+'+str("{:.2f}".format(hours[job_names.index(str(i))]))
+        if str(i).strip().lower() in name_list_cleaned and job_day in date_list:
+        #if str(i).strip().lower() in name_list_cleaned:
+        #    if job_day in date_list:
+                #print(name_list)
+                row = name_list.index(str(i))
+                column = date_list.index(str(job_day))
+                if new_sheet[str(chr(66+int(column)))+str(int(row)+3)].value == None:
+                    new_sheet[str(chr(66+int(column)))+str(int(row)+3)] = '='+str("{:.2f}".format(hours[job_names.index(str(i))]))
+                else:
+                    new_sheet[str(chr(66+int(column)))+str(int(row)+3)] = new_sheet[str(chr(66+int(column)))+str(int(row)+3)].value +'+'+str("{:.2f}".format(hours[job_names.index(str(i))]))
         else:
-            print('No coincide la fecha:', job_day, ', en el trabajo: ', job_name)
-            pass
+                #print(i)
+                print(i, job_names,'No coincide la fecha:', job_day, ', en el trabajo: ', job_name)
+                pass
+        #else:
+        #    print('no coincide el nombre,',i, job_names)
     
     #Llenar espacios en blanco de las horas con ceros
     for fila in range(3, int(len(name_list)+3)):
