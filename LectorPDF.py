@@ -1,4 +1,5 @@
 from spire.pdf.common import *
+import spire.pdf
 from spire.pdf import *
 import pdfplumber
 import pandas as pd
@@ -54,24 +55,44 @@ def pdf2svg(pdf,pdf_name,x=1800,y=1600):
     doc.Close()
     doc1.Close()
     
-def pdf2excel(pdf_file,pdf_name):
+def pdf2excel(pdf_file,pdf_name, place_name):
     path_data = os.path.join(str(os.getcwd()),'data')
     path_excel = os.path.join(str(os.getcwd()),'Excel')
+    path_pdfs = os.path.join(str(os.getcwd()),'PDFs')
+    if place_name == 'chicago':
+        pdf = pdfplumber.open(os.path.join(path_data,str(pdf_file)))
+        p0 = pdf.pages[0]
+        table = p0.extract_table()
+
+        # Crear DataFrame
+        df = pd.DataFrame(table[1:])
+
+        # Invertir las filas
+        df = df[::-1].reset_index(drop=True)
+
+        # Guardar en Excel
+        df.to_excel(os.path.join(path_excel,str(pdf_name))+".xlsx", index=False)
+    elif place_name == 'celtic':
+        pdf = pdfplumber.open(os.path.join(path_pdfs,str(pdf_file)))
+        p0 = pdf.pages[0]
+        table = p0.extract_table()
+
+        # Crear DataFrame
+        df = pd.DataFrame(table[0:])
+
+        # Invertir las filas
+        #df = df.reset_index(drop=True)
+
+        # Guardar en Excel
+        df.to_excel(os.path.join(path_excel,str(pdf_name))+".xlsx", index=False, header=False)
+    else:
+        print('Error-LectorPDF.pdf2excel: Lugar no identificado.')
     
-    pdf = pdfplumber.open(os.path.join(path_data,str(pdf_file)))
-    p0 = pdf.pages[0]
-    table = p0.extract_table()
-
-    # Crear DataFrame
-    df = pd.DataFrame(table[1:])
-
-    # Invertir las filas
-    df = df[::-1].reset_index(drop=True)
-
-    # Guardar en Excel
-    df.to_excel(os.path.join(path_excel,str(pdf_name))+".xlsx", index=False)
-
-def data_extractor(excel_file):
+def data_extractor(excel_file, place):
+    
+    def ampm_24h(hora_am_pm):
+        return datetime.strptime(hora_am_pm, "%I:%M %p").strftime("%H%M")
+    
     path_excel = os.path.join(str(os.getcwd()),'Excel')
     workbook = load_workbook(filename=os.path.join(path_excel,str(excel_file))+".xlsx")
     sheet = workbook.active
@@ -79,41 +100,73 @@ def data_extractor(excel_file):
     names = []
     total_hours = []
     time_list = []
-    
-    for i in range(14):
-        j = 2*i+17
-        cells = sheet[str("H"+str(j)): str("J"+str(j))]
-        if str(sheet[str("B"+str(j))].value).replace(" ","") == str(707):
-            #Nombres
-            names.append(sheet[str("C"+str(j))].value)
-            #Horas totales
-            total_hours.append((sheet[str("L"+str(j-1))].value).replace(" ",""))
-            #Horas iniciales, descanso y finales
-            if str(sheet[str("I"+str(j))].value).replace(" ","") == str(0):
-                clock_list = [time_list.append([str(c1.value),str(0) ,str(c2.value),str(c3.value)]) for (c1,c2,c3) in cells if str(c1.value) != 'None']
-                time_list = [[h1.replace(" ",""),str(h2),h3.replace(" ",""),h4.replace(" ","")] for x in time_list for (h1,h2,h3,h4) in [x]]
-                time_list = list(filter(None,time_list))                
-            elif str(sheet[str("I"+str(j))].value).replace(" ","") != str(0):
-                clock_list = [time_list.append([str(c1.value),str(sheet[str("I"+str(j-1))].value) ,str(c2.value),str(c3.value)]) for (c1,c2,c3) in cells if str(c1.value) != 'None']
-                time_list = [[h1.replace(" ",""),str(h2).replace(" ",""),h3.replace(" ",""),h4.replace(" ","")] for x in time_list for (h1,h2,h3,h4) in [x]]
-                time_list = list(filter(None,time_list))
-            else:
-                print('Hay un dato atípico en la fila: '+j)
-                pass
-    #Conversión de horas string a horas flotantes
-    time_list = [[int(time) for time in sublist] for sublist in time_list]
+    if place == 'chicago':
+        for i in range(14):
+            j = 2*i+17
+            cells = sheet[str("H"+str(j)): str("J"+str(j))]
+            if str(sheet[str("B"+str(j))].value).replace(" ","") == str(707):
+                #Nombres
+                names.append(sheet[str("C"+str(j))].value)
+                #Horas totales
+                total_hours.append((sheet[str("L"+str(j-1))].value).replace(" ",""))
+                #Horas iniciales, descanso y finales
+                if str(sheet[str("I"+str(j))].value).replace(" ","") == str(0):
+                    clock_list = [time_list.append([str(c1.value),str(0) ,str(c2.value),str(c3.value)]) for (c1,c2,c3) in cells if str(c1.value) != 'None']
+                    time_list = [[h1.replace(" ",""),str(h2),h3.replace(" ",""),h4.replace(" ","")] for x in time_list for (h1,h2,h3,h4) in [x]]
+                    time_list = list(filter(None,time_list))                
+                elif str(sheet[str("I"+str(j))].value).replace(" ","") != str(0):
+                    clock_list = [time_list.append([str(c1.value),str(sheet[str("I"+str(j-1))].value) ,str(c2.value),str(c3.value)]) for (c1,c2,c3) in cells if str(c1.value) != 'None']
+                    time_list = [[h1.replace(" ",""),str(h2).replace(" ",""),h3.replace(" ",""),h4.replace(" ","")] for x in time_list for (h1,h2,h3,h4) in [x]]
+                    time_list = list(filter(None,time_list))
+                else:
+                    print('Hay un dato atípico en la fila: '+j)
+                    pass
+        #Conversión de horas string a horas flotantes
+        time_list = [[int(time) for time in sublist] for sublist in time_list]
 
-    #Extracción de Trabajo, código de trabajo, fecha de inicio y final
-    job_ID_text = re.split('(\d+)',str(sheet[str("F4")].value).replace(" ",""))
-    job_name = (str(sheet[str("F7")].value).replace(" ","")).replace("\n","")
-    start_day = (str(sheet[str("B5")].value).replace(" ","")).replace("STARTDATE","").replace("\n","")
-    end_day = (str(sheet[str("B8")].value).replace(" ","")).replace("STOPDATE","").replace("\n","")
-    total_hours = [float(x) for x in total_hours]
-    names = [x.replace(" ", "") for x in names]
-    for i in job_ID_text:
-        if i.isdigit():
-            job_ID = i        
-    return names, job_name.replace("JOBNAME",""), job_ID, total_hours, time_list, start_day, end_day
+        #Extracción de Trabajo, código de trabajo, fecha de inicio y final
+        job_ID_text = re.split('(\d+)',str(sheet[str("F4")].value).replace(" ",""))
+        job_name = (str(sheet[str("F7")].value).replace(" ","")).replace("\n","")
+        start_day = (str(sheet[str("B5")].value).replace(" ","")).replace("STARTDATE","").replace("\n","")
+        end_day = (str(sheet[str("B8")].value).replace(" ","")).replace("STOPDATE","").replace("\n","")
+        total_hours = [float(x) for x in total_hours]
+        names = [x.replace(" ", "") for x in names]
+        for i in job_ID_text:
+            if i.isdigit():
+                job_ID = i
+        return names, job_name.replace("JOBNAME",""), job_ID, total_hours, time_list, start_day, end_day
+    
+    elif place == 'celtic':
+        for i in range(22):
+            j = i+6
+            cells = sheet[str("D"+str(j)): str("F"+str(j))]
+            if str(sheet[str("B"+str(j))].value) != 'None' and str(sheet[str("B"+str(j))].value).replace(' ','').isalpha() == True:
+                #print(str(sheet[str("B"+str(j))].value).replace(' ','').isalpha())
+                #Nombres
+                names.append(sheet[str("B"+str(j))].value)
+                #Horas totales
+                total_hours.append((sheet[str("G"+str(j))].value))
+                #Horas iniciales, descanso y finales
+                clock_list = [time_list.append([ampm_24h(str(c1.value)), (str(c3.value)).replace(':',''),ampm_24h(str(c2.value))]) for (c1,c2,c3) in cells]
+                #print(clock_list)
+                time_list = [[(h1),h2,(h3)] for x in time_list for (h1,h2,h3) in [x]]
+                time_list = list(filter(None,time_list))             
+
+        time_list = [[int(time) for time in sublist] for sublist in time_list]
+
+        #Extracción de Trabajo, código de trabajo, fecha de inicio y final
+        job_ID_text = str(sheet[str("E1")].value)
+        job_name = str(sheet[str("E2")].value)
+        start_day = datetime.strptime(str(sheet[str("A2")].value), "%m/%d/%Y")
+        start_day = f"{start_day.month}/{start_day.day}/{start_day.strftime('%y')}"
+        #start_day = str(datetime.strptime(str(sheet[str("A2")].value), "%m/%d/%Y"))
+        end_day = datetime.strptime(str(sheet[str("A4")].value), "%m/%d/%Y")
+        end_day = f"{end_day.month}/{end_day.day}/{end_day.strftime('%y')}"
+        total_hours = [float(x) for x in total_hours]
+        #pass
+        return names, job_name, job_ID_text, total_hours, time_list, start_day, end_day
+                
+    #return names, job_name.replace("JOBNAME",""), job_ID, total_hours, time_list, start_day, end_day
 
 def daylist_generator(initial_date, final_date):
     # Convierte las cadenas de fecha en objetos datetime

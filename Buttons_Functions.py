@@ -4,6 +4,8 @@ import SQLite_Database as SQLil
 import Calendar
 
 files, files_names = check_pdfs(os.path.join(str(os.getcwd()),'PDFs'))
+global place
+place = input('Chicago o Celtic: ').lower()
 
 def Conversion_process():
     # Crea o verifica que las carpetas donde se almacenarán los archivos estén creadas
@@ -11,26 +13,30 @@ def Conversion_process():
     for i in folders:
         folder_creator(str(os.getcwd()),i)
 
-    files2, files_names2 = check_pdfs(os.path.join(str(os.getcwd()),'data'))
+    files2, files_names2 = check_pdfs(os.path.join(str(os.getcwd()),'Excel'))
     
     s_files = set(files2)
     s_names = set(files_names2)
     difference_files = [x for x in files if x not in s_files]
     difference_names = [x for x in files_names if x not in s_names]
-   
-    if difference_names:
-        for i in range(len(difference_files)):
-            pdf2svg(difference_files[i],difference_names[i])
-        for i in range(len(difference_files)):
-            pdf2excel(difference_files[i],difference_names[i])
-    else:
-        print('Ya está todo')
-        pass
     
-    #for i in range(len(files)):
-    #    pdf2svg(files[i],files_names[i])
-    #for i in range(len(files)):
-    #    pdf2excel(files[i],files_names[i])
+    if place == 'chicago':
+        if difference_names:
+            for i in range(len(difference_files)):
+                pdf2svg(difference_files[i],difference_names[i])
+            for i in range(len(difference_files)):
+                pdf2excel(difference_files[i],difference_names[i],place)
+        else:
+            print('Ya está todo')
+            pass
+    elif place == 'celtic':
+        if difference_names:
+            for i in range(len(difference_files)):
+                pdf2excel(difference_files[i],difference_names[i], place)
+        else:
+            print('Ya está todo')
+            pass
+                    
 
 def Data_process():
     #Introducción de los días inicial y final de la semana de trabajo
@@ -47,30 +53,30 @@ def Data_process():
     all_job_IDs = []
     hours_per_job = []
     day_list = daylist_generator(start_day,end_day)
-    for i in range(len(files)):
-        names, job_name, job_ID, total_hours, time_list, start_day_job, end_day_job = data_extractor(files_names[i])
-        hours_per_job.append(total_hours)
-        all_names = names + all_names
-        all_job_names.append(str(job_name))
-        all_job_IDs.append(str(job_ID))
-    all_names = [str(x) for x in np.unique(all_names)]
-    all_names.sort()
-    
+    if place == 'chicago':
+        for i in range(len(files)):
+            names, job_name, job_ID, total_hours, time_list, start_day_job, end_day_job = data_extractor(files_names[i],place)
+            hours_per_job.append(total_hours)
+            all_names = names + all_names
+            all_job_names.append(str(job_name))
+            all_job_IDs.append(str(job_ID))
+        all_names = [str(x) for x in np.unique(all_names)]
+        all_names.sort()
+    elif place == 'celtic':
+        number_people = int(input('Número de empleados: '))
+        for _ in range(number_people):
+            all_names.append(input('Nombre a agregar: '))
+        for i in range(len(files)):
+            names, job_name, job_ID, total_hours,*_ = data_extractor(files_names[i], place)
+            all_job_names.append(str(job_name))
+            all_job_IDs.append(str(job_ID))
+            #if names in all_names:
+                
+        
     #Revisión de base de datos
     cambios_DB = SQLil.getValuesList('Names_changes','Initial_Date',start_day)
     cambios_jobs_DB = SQLil.getValuesList('Jobs_changes','Initial_Date',start_day)    
-    
-#    if cambios_DB:
-#        for i in range(len(cambios_DB)):
-#            if cambios_DB[i][0] in all_names:
-#                indice = all_names.index(cambios_DB[i][0])
-#                all_names[indice] = cambios_DB[i][1]
-#    if cambios_jobs_DB:
-#        for i in range(len(cambios_jobs_DB)):
-#            if cambios_jobs_DB[i][0] in all_job_names:
-#                indice = all_job_names.index(cambios_jobs_DB[i][0])
-#                all_job_names[indice] = cambios_jobs_DB[i][1]
-    
+        
     #Interfase de revisión
     all_names, all_job_names, all_job_IDs, cambios, cambios_jobs = Interface.interface(all_names,all_job_names,all_job_IDs, cambios_DB, cambios_jobs_DB, start_day)
         
@@ -88,7 +94,9 @@ def Data_process():
     #Agrega variables generales a las hojas nuevas de excel, y agrega horas
     for i in range(len(files)):
         #Extrae los datos
-        names, job_name, job_ID, total_hours, time_list, start_day_job, end_day_job = data_extractor(files_names[i])
+        names, job_name, job_ID, total_hours, time_list, start_day_job, end_day_job = data_extractor(files_names[i], place)
+        if place == 'celtic':
+            names = [x for x in names if x in all_names]
         #Cambiar el formato de time_list para cuando el trabajo termine en el día siguiente al que comenzó
         for j in range(len(time_list)):
             if int(time_list[j][0]) > int(time_list[j][-1]):

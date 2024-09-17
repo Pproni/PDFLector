@@ -131,6 +131,7 @@ def interface(name_list,job_list,job_ID_list, cambios, cambios_jobs, initial_dat
         nuevo_elemento = cuadro_texto_name_list.get()
         if nuevo_elemento:
             name_list.append(nuevo_elemento)
+            Old_name_list.append(nuevo_elemento)
             actualizar_lista()
             cuadro_texto_name_list.delete(0, tk.END)
 

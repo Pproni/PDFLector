@@ -55,7 +55,7 @@ def seleccionar_conversion():
     # Cerrar la ventana actual con los botones
     ventana.withdraw()  # Oculta la ventana principal
 
-    # Crea y muestra la ventana< de progreso
+    # Crea y muestra la ventana de progreso
     progress_window, progress_bar = iniciar_barra_progreso()
 
     # Inicia la función mover_barra_progreso para aumentar la velocidad

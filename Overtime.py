@@ -1,4 +1,5 @@
 from LectorPDF import *
+#import LectorPDF
 from win32com.client import Dispatch
 
 def just_open(filename):
@@ -134,7 +135,7 @@ def Supervisor_boxes(name_list, all_job_names):
                      top=Side(style='thin'), 
                      bottom=Side(style='thin'))
     
-    Supervisores = ['Pedro Forero', 'Roberto Vasquez']
+    Supervisores = ['Pedro Forero', 'Pedro Forero']
     General_sheet[f'H{len(name_list) + 7}'].fill = PatternFill(fill_type="solid", fgColor="ea9999")
     General_sheet[f'I{len(name_list) + 7}'].fill = PatternFill(fill_type="solid", fgColor="ea9999")
     General_sheet[f'H{len(name_list) + 8}'] = Supervisores[0]
@@ -153,6 +154,10 @@ def Supervisor_boxes(name_list, all_job_names):
     
     Pedro_index = name_list.index(Supervisores[0])
     Roberto_index = name_list.index(Supervisores[1])
+    #if Supervisores[1] in name_list:
+    #    Roberto_index = name_list.index(Supervisores[1])
+    #else:
+    #    Roberto_index = name_list.index(Supervisores[0])
     
     counter = 0
     for i in range(len(sheet_names)):
